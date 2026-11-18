@@ -1,0 +1,1447 @@
+[
+  {
+    "id": "schema.public",
+    "label": "Create schema \"public\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "Create schema \"public\"",
+        "sql": "CREATE SCHEMA IF NOT EXISTS \"public\"",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "table.DataLembagaKeagamaan",
+    "label": "Create table \"DataLembagaKeagamaan\"",
+    "summary": "Creates table \"DataLembagaKeagamaan\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "DataLembagaKeagamaan"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"DataLembagaKeagamaan\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"DataLembagaKeagamaan\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"DataLembagaKeagamaan\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"DataLembagaKeagamaan\"",
+        "sql": "CREATE TABLE \"public\".\"DataLembagaKeagamaan\" (\n  \"alamat\" text NOT NULL,\n  \"createdAt\" timestamptz(3) NOT NULL,\n  \"id\" text NOT NULL,\n  \"jenisLembaga\" text NOT NULL,\n  \"kecamatanId\" text NOT NULL,\n  \"namaLembaga\" text NOT NULL,\n  \"nomorSk\" text,\n  \"pimpinan\" text NOT NULL,\n  \"tahunBerdiri\" int4,\n  \"updatedAt\" timestamptz(3) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"DataLembagaKeagamaan\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"DataLembagaKeagamaan\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"DataLembagaKeagamaan\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.DataMasjid",
+    "label": "Create table \"DataMasjid\"",
+    "summary": "Creates table \"DataMasjid\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "DataMasjid"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"DataMasjid\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"DataMasjid\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"DataMasjid\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"DataMasjid\"",
+        "sql": "CREATE TABLE \"public\".\"DataMasjid\" (\n  \"alamatLengkap\" text NOT NULL,\n  \"createdAt\" timestamptz(3) NOT NULL,\n  \"id\" text NOT NULL,\n  \"kecamatanId\" text NOT NULL,\n  \"kontakTakmir\" text,\n  \"luasTanah\" float8,\n  \"namaMasjid\" text NOT NULL,\n  \"namaTakmir\" text,\n  \"statusTanah\" text,\n  \"tahunBerdiri\" int4,\n  \"tipeMasjid\" text NOT NULL,\n  \"updatedAt\" timestamptz(3) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"DataMasjid\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"DataMasjid\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"DataMasjid\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.KuaProfile",
+    "label": "Create table \"KuaProfile\"",
+    "summary": "Creates table \"KuaProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "KuaProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"KuaProfile\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"KuaProfile\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"KuaProfile\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"KuaProfile\"",
+        "sql": "CREATE TABLE \"public\".\"KuaProfile\" (\n  \"alamat\" text NOT NULL,\n  \"createdAt\" timestamptz(3) NOT NULL,\n  \"email\" text,\n  \"id\" text NOT NULL,\n  \"kecamatanId\" text NOT NULL,\n  \"kepalaKuaNip\" text,\n  \"namaKua\" text NOT NULL,\n  \"telepon\" text,\n  \"updatedAt\" timestamptz(3) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"KuaProfile\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"KuaProfile\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"KuaProfile\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.LayananPtsp",
+    "label": "Create table \"LayananPtsp\"",
+    "summary": "Creates table \"LayananPtsp\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "LayananPtsp"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"LayananPtsp\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"LayananPtsp\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"LayananPtsp\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"LayananPtsp\"",
+        "sql": "CREATE TABLE \"public\".\"LayananPtsp\" (\n  \"berkasUrl\" text,\n  \"catatanPetugas\" text,\n  \"createdAt\" timestamptz(3) NOT NULL,\n  \"id\" text NOT NULL,\n  \"jenisLayanan\" text NOT NULL,\n  \"keperluan\" text NOT NULL,\n  \"namaPemohon\" text NOT NULL,\n  \"nikPemohon\" text NOT NULL,\n  \"nomorTiket\" text NOT NULL,\n  \"petugasId\" text,\n  \"status\" text DEFAULT 'PENDING' NOT NULL,\n  \"updatedAt\" timestamptz(3) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"LayananPtsp\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"LayananPtsp\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"LayananPtsp\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.MasterJabatan",
+    "label": "Create table \"MasterJabatan\"",
+    "summary": "Creates table \"MasterJabatan\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "MasterJabatan"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"MasterJabatan\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"MasterJabatan\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"MasterJabatan\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"MasterJabatan\"",
+        "sql": "CREATE TABLE \"public\".\"MasterJabatan\" (\n  \"createdAt\" timestamptz(3) NOT NULL,\n  \"deskripsi\" text,\n  \"id\" text NOT NULL,\n  \"namaJabatan\" text NOT NULL,\n  \"updatedAt\" timestamptz(3) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"MasterJabatan\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"MasterJabatan\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"MasterJabatan\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.MasterKecamatan",
+    "label": "Create table \"MasterKecamatan\"",
+    "summary": "Creates table \"MasterKecamatan\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "MasterKecamatan"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"MasterKecamatan\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"MasterKecamatan\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"MasterKecamatan\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"MasterKecamatan\"",
+        "sql": "CREATE TABLE \"public\".\"MasterKecamatan\" (\n  \"createdAt\" timestamptz(3) NOT NULL,\n  \"id\" text NOT NULL,\n  \"kodeKecamatan\" text,\n  \"namaKecamatan\" text NOT NULL,\n  \"updatedAt\" timestamptz(3) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"MasterKecamatan\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"MasterKecamatan\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"MasterKecamatan\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.Pegawai",
+    "label": "Create table \"Pegawai\"",
+    "summary": "Creates table \"Pegawai\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Pegawai"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Pegawai\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Pegawai\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"Pegawai\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Pegawai\"",
+        "sql": "CREATE TABLE \"public\".\"Pegawai\" (\n  \"createdAt\" timestamptz(3) NOT NULL,\n  \"email\" text,\n  \"fotoUrl\" text,\n  \"gelarBelakang\" text,\n  \"gelarDepan\" text,\n  \"id\" text NOT NULL,\n  \"jabatanId\" text NOT NULL,\n  \"kecamatanId\" text,\n  \"namaLengkap\" text NOT NULL,\n  \"nip\" text NOT NULL,\n  \"nomorHp\" text,\n  \"statusKeaktifan\" bool DEFAULT true NOT NULL,\n  \"updatedAt\" timestamptz(3) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Pegawai\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"Pegawai\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"Pegawai\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.PencatatanNikah",
+    "label": "Create table \"PencatatanNikah\"",
+    "summary": "Creates table \"PencatatanNikah\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "PencatatanNikah"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"PencatatanNikah\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PencatatanNikah\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"PencatatanNikah\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"PencatatanNikah\"",
+        "sql": "CREATE TABLE \"public\".\"PencatatanNikah\" (\n  \"alamatAkad\" text NOT NULL,\n  \"createdAt\" timestamptz(3) NOT NULL,\n  \"id\" text NOT NULL,\n  \"lokasiAkad\" text NOT NULL,\n  \"namaIstri\" text NOT NULL,\n  \"namaSuami\" text NOT NULL,\n  \"nomorPendaftaran\" text NOT NULL,\n  \"penghuluId\" text NOT NULL,\n  \"statusNikah\" text DEFAULT 'TERDAFTAR' NOT NULL,\n  \"tanggalAkad\" timestamptz(3) NOT NULL,\n  \"updatedAt\" timestamptz(3) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"PencatatanNikah\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"PencatatanNikah\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"PencatatanNikah\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "unique.KuaProfile.KuaProfile_kecamatanId_key",
+    "label": "Add unique constraint on \"KuaProfile\" (kecamatanId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "KuaProfile_kecamatanId_key",
+        "table": "KuaProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"KuaProfile_kecamatanId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "KuaProfile_kecamatanId_key",
+          "public",
+          "\"public\".\"KuaProfile\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "constraint \"KuaProfile_kecamatanId_key\" on \"KuaProfile\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"KuaProfile_kecamatanId_key\"",
+        "sql": "ALTER TABLE \"public\".\"KuaProfile\" ADD CONSTRAINT \"KuaProfile_kecamatanId_key\" UNIQUE (\"kecamatanId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify unique constraint \"KuaProfile_kecamatanId_key\" exists on (kecamatanId)",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb)) AS \"result\"",
+        "params": [
+          "KuaProfile_kecamatanId_key",
+          "public",
+          "\"public\".\"KuaProfile\"",
+          "u",
+          "[\"kecamatanId\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.LayananPtsp.LayananPtsp_nomorTiket_key",
+    "label": "Add unique constraint on \"LayananPtsp\" (nomorTiket)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "LayananPtsp_nomorTiket_key",
+        "table": "LayananPtsp"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"LayananPtsp_nomorTiket_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "LayananPtsp_nomorTiket_key",
+          "public",
+          "\"public\".\"LayananPtsp\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "constraint \"LayananPtsp_nomorTiket_key\" on \"LayananPtsp\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"LayananPtsp_nomorTiket_key\"",
+        "sql": "ALTER TABLE \"public\".\"LayananPtsp\" ADD CONSTRAINT \"LayananPtsp_nomorTiket_key\" UNIQUE (\"nomorTiket\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify unique constraint \"LayananPtsp_nomorTiket_key\" exists on (nomorTiket)",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb)) AS \"result\"",
+        "params": [
+          "LayananPtsp_nomorTiket_key",
+          "public",
+          "\"public\".\"LayananPtsp\"",
+          "u",
+          "[\"nomorTiket\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.MasterJabatan.MasterJabatan_namaJabatan_key",
+    "label": "Add unique constraint on \"MasterJabatan\" (namaJabatan)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "MasterJabatan_namaJabatan_key",
+        "table": "MasterJabatan"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"MasterJabatan_namaJabatan_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "MasterJabatan_namaJabatan_key",
+          "public",
+          "\"public\".\"MasterJabatan\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "constraint \"MasterJabatan_namaJabatan_key\" on \"MasterJabatan\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"MasterJabatan_namaJabatan_key\"",
+        "sql": "ALTER TABLE \"public\".\"MasterJabatan\" ADD CONSTRAINT \"MasterJabatan_namaJabatan_key\" UNIQUE (\"namaJabatan\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify unique constraint \"MasterJabatan_namaJabatan_key\" exists on (namaJabatan)",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb)) AS \"result\"",
+        "params": [
+          "MasterJabatan_namaJabatan_key",
+          "public",
+          "\"public\".\"MasterJabatan\"",
+          "u",
+          "[\"namaJabatan\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.MasterKecamatan.MasterKecamatan_namaKecamatan_key",
+    "label": "Add unique constraint on \"MasterKecamatan\" (namaKecamatan)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "MasterKecamatan_namaKecamatan_key",
+        "table": "MasterKecamatan"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"MasterKecamatan_namaKecamatan_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "MasterKecamatan_namaKecamatan_key",
+          "public",
+          "\"public\".\"MasterKecamatan\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "constraint \"MasterKecamatan_namaKecamatan_key\" on \"MasterKecamatan\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"MasterKecamatan_namaKecamatan_key\"",
+        "sql": "ALTER TABLE \"public\".\"MasterKecamatan\" ADD CONSTRAINT \"MasterKecamatan_namaKecamatan_key\" UNIQUE (\"namaKecamatan\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify unique constraint \"MasterKecamatan_namaKecamatan_key\" exists on (namaKecamatan)",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb)) AS \"result\"",
+        "params": [
+          "MasterKecamatan_namaKecamatan_key",
+          "public",
+          "\"public\".\"MasterKecamatan\"",
+          "u",
+          "[\"namaKecamatan\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.MasterKecamatan.MasterKecamatan_kodeKecamatan_key",
+    "label": "Add unique constraint on \"MasterKecamatan\" (kodeKecamatan)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "MasterKecamatan_kodeKecamatan_key",
+        "table": "MasterKecamatan"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"MasterKecamatan_kodeKecamatan_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "MasterKecamatan_kodeKecamatan_key",
+          "public",
+          "\"public\".\"MasterKecamatan\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "constraint \"MasterKecamatan_kodeKecamatan_key\" on \"MasterKecamatan\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"MasterKecamatan_kodeKecamatan_key\"",
+        "sql": "ALTER TABLE \"public\".\"MasterKecamatan\" ADD CONSTRAINT \"MasterKecamatan_kodeKecamatan_key\" UNIQUE (\"kodeKecamatan\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify unique constraint \"MasterKecamatan_kodeKecamatan_key\" exists on (kodeKecamatan)",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb)) AS \"result\"",
+        "params": [
+          "MasterKecamatan_kodeKecamatan_key",
+          "public",
+          "\"public\".\"MasterKecamatan\"",
+          "u",
+          "[\"kodeKecamatan\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.Pegawai.Pegawai_nip_key",
+    "label": "Add unique constraint on \"Pegawai\" (nip)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "Pegawai_nip_key",
+        "table": "Pegawai"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"Pegawai_nip_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Pegawai_nip_key",
+          "public",
+          "\"public\".\"Pegawai\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "constraint \"Pegawai_nip_key\" on \"Pegawai\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"Pegawai_nip_key\"",
+        "sql": "ALTER TABLE \"public\".\"Pegawai\" ADD CONSTRAINT \"Pegawai_nip_key\" UNIQUE (\"nip\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify unique constraint \"Pegawai_nip_key\" exists on (nip)",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb)) AS \"result\"",
+        "params": [
+          "Pegawai_nip_key",
+          "public",
+          "\"public\".\"Pegawai\"",
+          "u",
+          "[\"nip\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.Pegawai.Pegawai_email_key",
+    "label": "Add unique constraint on \"Pegawai\" (email)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "Pegawai_email_key",
+        "table": "Pegawai"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"Pegawai_email_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Pegawai_email_key",
+          "public",
+          "\"public\".\"Pegawai\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "constraint \"Pegawai_email_key\" on \"Pegawai\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"Pegawai_email_key\"",
+        "sql": "ALTER TABLE \"public\".\"Pegawai\" ADD CONSTRAINT \"Pegawai_email_key\" UNIQUE (\"email\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify unique constraint \"Pegawai_email_key\" exists on (email)",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb)) AS \"result\"",
+        "params": [
+          "Pegawai_email_key",
+          "public",
+          "\"public\".\"Pegawai\"",
+          "u",
+          "[\"email\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.PencatatanNikah.PencatatanNikah_nomorPendaftaran_key",
+    "label": "Add unique constraint on \"PencatatanNikah\" (nomorPendaftaran)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "PencatatanNikah_nomorPendaftaran_key",
+        "table": "PencatatanNikah"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"PencatatanNikah_nomorPendaftaran_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PencatatanNikah_nomorPendaftaran_key",
+          "public",
+          "\"public\".\"PencatatanNikah\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "constraint \"PencatatanNikah_nomorPendaftaran_key\" on \"PencatatanNikah\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"PencatatanNikah_nomorPendaftaran_key\"",
+        "sql": "ALTER TABLE \"public\".\"PencatatanNikah\" ADD CONSTRAINT \"PencatatanNikah_nomorPendaftaran_key\" UNIQUE (\"nomorPendaftaran\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify unique constraint \"PencatatanNikah_nomorPendaftaran_key\" exists on (nomorPendaftaran)",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb)) AS \"result\"",
+        "params": [
+          "PencatatanNikah_nomorPendaftaran_key",
+          "public",
+          "\"public\".\"PencatatanNikah\"",
+          "u",
+          "[\"nomorPendaftaran\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.DataLembagaKeagamaan.DataLembagaKeagamaan_kecamatanId_idx_b56575e3",
+    "label": "Create index \"DataLembagaKeagamaan_kecamatanId_idx_b56575e3\" on \"DataLembagaKeagamaan\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "DataLembagaKeagamaan_kecamatanId_idx_b56575e3",
+        "table": "DataLembagaKeagamaan"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"DataLembagaKeagamaan_kecamatanId_idx_b56575e3\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"DataLembagaKeagamaan_kecamatanId_idx_b56575e3\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"DataLembagaKeagamaan_kecamatanId_idx_b56575e3\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"DataLembagaKeagamaan_kecamatanId_idx_b56575e3\"",
+        "sql": "CREATE INDEX \"DataLembagaKeagamaan_kecamatanId_idx_b56575e3\" ON \"public\".\"DataLembagaKeagamaan\" (\"kecamatanId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"DataLembagaKeagamaan_kecamatanId_idx_b56575e3\" exists on \"DataLembagaKeagamaan\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"DataLembagaKeagamaan_kecamatanId_idx_b56575e3\"",
+          "i",
+          "I",
+          "\"public\".\"DataLembagaKeagamaan\"",
+          "btree",
+          "[\"kecamatanId\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.DataMasjid.DataMasjid_kecamatanId_idx_b56575e3",
+    "label": "Create index \"DataMasjid_kecamatanId_idx_b56575e3\" on \"DataMasjid\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "DataMasjid_kecamatanId_idx_b56575e3",
+        "table": "DataMasjid"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"DataMasjid_kecamatanId_idx_b56575e3\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"DataMasjid_kecamatanId_idx_b56575e3\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"DataMasjid_kecamatanId_idx_b56575e3\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"DataMasjid_kecamatanId_idx_b56575e3\"",
+        "sql": "CREATE INDEX \"DataMasjid_kecamatanId_idx_b56575e3\" ON \"public\".\"DataMasjid\" (\"kecamatanId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"DataMasjid_kecamatanId_idx_b56575e3\" exists on \"DataMasjid\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"DataMasjid_kecamatanId_idx_b56575e3\"",
+          "i",
+          "I",
+          "\"public\".\"DataMasjid\"",
+          "btree",
+          "[\"kecamatanId\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.LayananPtsp.LayananPtsp_petugasId_idx_c3b1f58e",
+    "label": "Create index \"LayananPtsp_petugasId_idx_c3b1f58e\" on \"LayananPtsp\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "LayananPtsp_petugasId_idx_c3b1f58e",
+        "table": "LayananPtsp"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"LayananPtsp_petugasId_idx_c3b1f58e\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"LayananPtsp_petugasId_idx_c3b1f58e\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"LayananPtsp_petugasId_idx_c3b1f58e\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"LayananPtsp_petugasId_idx_c3b1f58e\"",
+        "sql": "CREATE INDEX \"LayananPtsp_petugasId_idx_c3b1f58e\" ON \"public\".\"LayananPtsp\" (\"petugasId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"LayananPtsp_petugasId_idx_c3b1f58e\" exists on \"LayananPtsp\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"LayananPtsp_petugasId_idx_c3b1f58e\"",
+          "i",
+          "I",
+          "\"public\".\"LayananPtsp\"",
+          "btree",
+          "[\"petugasId\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Pegawai.Pegawai_jabatanId_idx_2ad10016",
+    "label": "Create index \"Pegawai_jabatanId_idx_2ad10016\" on \"Pegawai\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Pegawai_jabatanId_idx_2ad10016",
+        "table": "Pegawai"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Pegawai_jabatanId_idx_2ad10016\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Pegawai_jabatanId_idx_2ad10016\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"Pegawai_jabatanId_idx_2ad10016\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Pegawai_jabatanId_idx_2ad10016\"",
+        "sql": "CREATE INDEX \"Pegawai_jabatanId_idx_2ad10016\" ON \"public\".\"Pegawai\" (\"jabatanId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Pegawai_jabatanId_idx_2ad10016\" exists on \"Pegawai\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"Pegawai_jabatanId_idx_2ad10016\"",
+          "i",
+          "I",
+          "\"public\".\"Pegawai\"",
+          "btree",
+          "[\"jabatanId\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Pegawai.Pegawai_kecamatanId_idx_b56575e3",
+    "label": "Create index \"Pegawai_kecamatanId_idx_b56575e3\" on \"Pegawai\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Pegawai_kecamatanId_idx_b56575e3",
+        "table": "Pegawai"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Pegawai_kecamatanId_idx_b56575e3\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Pegawai_kecamatanId_idx_b56575e3\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"Pegawai_kecamatanId_idx_b56575e3\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Pegawai_kecamatanId_idx_b56575e3\"",
+        "sql": "CREATE INDEX \"Pegawai_kecamatanId_idx_b56575e3\" ON \"public\".\"Pegawai\" (\"kecamatanId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Pegawai_kecamatanId_idx_b56575e3\" exists on \"Pegawai\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"Pegawai_kecamatanId_idx_b56575e3\"",
+          "i",
+          "I",
+          "\"public\".\"Pegawai\"",
+          "btree",
+          "[\"kecamatanId\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PencatatanNikah.PencatatanNikah_penghuluId_idx_53081b55",
+    "label": "Create index \"PencatatanNikah_penghuluId_idx_53081b55\" on \"PencatatanNikah\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PencatatanNikah_penghuluId_idx_53081b55",
+        "table": "PencatatanNikah"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PencatatanNikah_penghuluId_idx_53081b55\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PencatatanNikah_penghuluId_idx_53081b55\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"PencatatanNikah_penghuluId_idx_53081b55\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PencatatanNikah_penghuluId_idx_53081b55\"",
+        "sql": "CREATE INDEX \"PencatatanNikah_penghuluId_idx_53081b55\" ON \"public\".\"PencatatanNikah\" (\"penghuluId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PencatatanNikah_penghuluId_idx_53081b55\" exists on \"PencatatanNikah\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"PencatatanNikah_penghuluId_idx_53081b55\"",
+          "i",
+          "I",
+          "\"public\".\"PencatatanNikah\"",
+          "btree",
+          "[\"penghuluId\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.DataLembagaKeagamaan.DataLembagaKeagamaan_kecamatanId_fkey",
+    "label": "Add foreign key \"DataLembagaKeagamaan_kecamatanId_fkey\" on \"DataLembagaKeagamaan\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "DataLembagaKeagamaan_kecamatanId_fkey",
+        "table": "DataLembagaKeagamaan"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"DataLembagaKeagamaan_kecamatanId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "DataLembagaKeagamaan_kecamatanId_fkey",
+          "public",
+          "\"public\".\"DataLembagaKeagamaan\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "FK \"DataLembagaKeagamaan_kecamatanId_fkey\" on \"DataLembagaKeagamaan\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"DataLembagaKeagamaan_kecamatanId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"DataLembagaKeagamaan\"\nADD CONSTRAINT \"DataLembagaKeagamaan_kecamatanId_fkey\"\nFOREIGN KEY (\"kecamatanId\")\nREFERENCES \"public\".\"MasterKecamatan\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"DataLembagaKeagamaan_kecamatanId_fkey\" exists with the planned columns, referenced table and actions",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb AND \"c\".\"confrelid\" = to_regclass($6) AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"confkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"confrelid\" AND key_attribute.attnum = key_column.attnum) = ($7)::jsonb AND \"c\".\"confdeltype\" = $8 AND \"c\".\"confupdtype\" = $9)) AS \"result\"",
+        "params": [
+          "DataLembagaKeagamaan_kecamatanId_fkey",
+          "public",
+          "\"public\".\"DataLembagaKeagamaan\"",
+          "f",
+          "[\"kecamatanId\"]",
+          "\"public\".\"MasterKecamatan\"",
+          "[\"id\"]",
+          "a",
+          "a"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.DataMasjid.DataMasjid_kecamatanId_fkey",
+    "label": "Add foreign key \"DataMasjid_kecamatanId_fkey\" on \"DataMasjid\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "DataMasjid_kecamatanId_fkey",
+        "table": "DataMasjid"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"DataMasjid_kecamatanId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "DataMasjid_kecamatanId_fkey",
+          "public",
+          "\"public\".\"DataMasjid\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "FK \"DataMasjid_kecamatanId_fkey\" on \"DataMasjid\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"DataMasjid_kecamatanId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"DataMasjid\"\nADD CONSTRAINT \"DataMasjid_kecamatanId_fkey\"\nFOREIGN KEY (\"kecamatanId\")\nREFERENCES \"public\".\"MasterKecamatan\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"DataMasjid_kecamatanId_fkey\" exists with the planned columns, referenced table and actions",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb AND \"c\".\"confrelid\" = to_regclass($6) AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"confkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"confrelid\" AND key_attribute.attnum = key_column.attnum) = ($7)::jsonb AND \"c\".\"confdeltype\" = $8 AND \"c\".\"confupdtype\" = $9)) AS \"result\"",
+        "params": [
+          "DataMasjid_kecamatanId_fkey",
+          "public",
+          "\"public\".\"DataMasjid\"",
+          "f",
+          "[\"kecamatanId\"]",
+          "\"public\".\"MasterKecamatan\"",
+          "[\"id\"]",
+          "a",
+          "a"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.KuaProfile.KuaProfile_kecamatanId_fkey",
+    "label": "Add foreign key \"KuaProfile_kecamatanId_fkey\" on \"KuaProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "KuaProfile_kecamatanId_fkey",
+        "table": "KuaProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"KuaProfile_kecamatanId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "KuaProfile_kecamatanId_fkey",
+          "public",
+          "\"public\".\"KuaProfile\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "FK \"KuaProfile_kecamatanId_fkey\" on \"KuaProfile\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"KuaProfile_kecamatanId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"KuaProfile\"\nADD CONSTRAINT \"KuaProfile_kecamatanId_fkey\"\nFOREIGN KEY (\"kecamatanId\")\nREFERENCES \"public\".\"MasterKecamatan\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"KuaProfile_kecamatanId_fkey\" exists with the planned columns, referenced table and actions",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb AND \"c\".\"confrelid\" = to_regclass($6) AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"confkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"confrelid\" AND key_attribute.attnum = key_column.attnum) = ($7)::jsonb AND \"c\".\"confdeltype\" = $8 AND \"c\".\"confupdtype\" = $9)) AS \"result\"",
+        "params": [
+          "KuaProfile_kecamatanId_fkey",
+          "public",
+          "\"public\".\"KuaProfile\"",
+          "f",
+          "[\"kecamatanId\"]",
+          "\"public\".\"MasterKecamatan\"",
+          "[\"id\"]",
+          "a",
+          "a"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.LayananPtsp.LayananPtsp_petugasId_fkey",
+    "label": "Add foreign key \"LayananPtsp_petugasId_fkey\" on \"LayananPtsp\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "LayananPtsp_petugasId_fkey",
+        "table": "LayananPtsp"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"LayananPtsp_petugasId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "LayananPtsp_petugasId_fkey",
+          "public",
+          "\"public\".\"LayananPtsp\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "FK \"LayananPtsp_petugasId_fkey\" on \"LayananPtsp\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"LayananPtsp_petugasId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"LayananPtsp\"\nADD CONSTRAINT \"LayananPtsp_petugasId_fkey\"\nFOREIGN KEY (\"petugasId\")\nREFERENCES \"public\".\"Pegawai\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"LayananPtsp_petugasId_fkey\" exists with the planned columns, referenced table and actions",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb AND \"c\".\"confrelid\" = to_regclass($6) AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"confkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"confrelid\" AND key_attribute.attnum = key_column.attnum) = ($7)::jsonb AND \"c\".\"confdeltype\" = $8 AND \"c\".\"confupdtype\" = $9)) AS \"result\"",
+        "params": [
+          "LayananPtsp_petugasId_fkey",
+          "public",
+          "\"public\".\"LayananPtsp\"",
+          "f",
+          "[\"petugasId\"]",
+          "\"public\".\"Pegawai\"",
+          "[\"id\"]",
+          "a",
+          "a"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Pegawai.Pegawai_jabatanId_fkey",
+    "label": "Add foreign key \"Pegawai_jabatanId_fkey\" on \"Pegawai\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Pegawai_jabatanId_fkey",
+        "table": "Pegawai"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Pegawai_jabatanId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Pegawai_jabatanId_fkey",
+          "public",
+          "\"public\".\"Pegawai\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "FK \"Pegawai_jabatanId_fkey\" on \"Pegawai\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Pegawai_jabatanId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Pegawai\"\nADD CONSTRAINT \"Pegawai_jabatanId_fkey\"\nFOREIGN KEY (\"jabatanId\")\nREFERENCES \"public\".\"MasterJabatan\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Pegawai_jabatanId_fkey\" exists with the planned columns, referenced table and actions",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb AND \"c\".\"confrelid\" = to_regclass($6) AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"confkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"confrelid\" AND key_attribute.attnum = key_column.attnum) = ($7)::jsonb AND \"c\".\"confdeltype\" = $8 AND \"c\".\"confupdtype\" = $9)) AS \"result\"",
+        "params": [
+          "Pegawai_jabatanId_fkey",
+          "public",
+          "\"public\".\"Pegawai\"",
+          "f",
+          "[\"jabatanId\"]",
+          "\"public\".\"MasterJabatan\"",
+          "[\"id\"]",
+          "a",
+          "a"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Pegawai.Pegawai_kecamatanId_fkey",
+    "label": "Add foreign key \"Pegawai_kecamatanId_fkey\" on \"Pegawai\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Pegawai_kecamatanId_fkey",
+        "table": "Pegawai"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Pegawai_kecamatanId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Pegawai_kecamatanId_fkey",
+          "public",
+          "\"public\".\"Pegawai\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "FK \"Pegawai_kecamatanId_fkey\" on \"Pegawai\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Pegawai_kecamatanId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Pegawai\"\nADD CONSTRAINT \"Pegawai_kecamatanId_fkey\"\nFOREIGN KEY (\"kecamatanId\")\nREFERENCES \"public\".\"MasterKecamatan\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Pegawai_kecamatanId_fkey\" exists with the planned columns, referenced table and actions",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb AND \"c\".\"confrelid\" = to_regclass($6) AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"confkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"confrelid\" AND key_attribute.attnum = key_column.attnum) = ($7)::jsonb AND \"c\".\"confdeltype\" = $8 AND \"c\".\"confupdtype\" = $9)) AS \"result\"",
+        "params": [
+          "Pegawai_kecamatanId_fkey",
+          "public",
+          "\"public\".\"Pegawai\"",
+          "f",
+          "[\"kecamatanId\"]",
+          "\"public\".\"MasterKecamatan\"",
+          "[\"id\"]",
+          "a",
+          "a"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.PencatatanNikah.PencatatanNikah_penghuluId_fkey",
+    "label": "Add foreign key \"PencatatanNikah_penghuluId_fkey\" on \"PencatatanNikah\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PencatatanNikah_penghuluId_fkey",
+        "table": "PencatatanNikah"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"PencatatanNikah_penghuluId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PencatatanNikah_penghuluId_fkey",
+          "public",
+          "\"public\".\"PencatatanNikah\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "FK \"PencatatanNikah_penghuluId_fkey\" on \"PencatatanNikah\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"PencatatanNikah_penghuluId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PencatatanNikah\"\nADD CONSTRAINT \"PencatatanNikah_penghuluId_fkey\"\nFOREIGN KEY (\"penghuluId\")\nREFERENCES \"public\".\"Pegawai\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"PencatatanNikah_penghuluId_fkey\" exists with the planned columns, referenced table and actions",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb AND \"c\".\"confrelid\" = to_regclass($6) AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"confkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"confrelid\" AND key_attribute.attnum = key_column.attnum) = ($7)::jsonb AND \"c\".\"confdeltype\" = $8 AND \"c\".\"confupdtype\" = $9)) AS \"result\"",
+        "params": [
+          "PencatatanNikah_penghuluId_fkey",
+          "public",
+          "\"public\".\"PencatatanNikah\"",
+          "f",
+          "[\"penghuluId\"]",
+          "\"public\".\"Pegawai\"",
+          "[\"id\"]",
+          "a",
+          "a"
+        ]
+      }
+    ]
+  }
+]
