@@ -87,9 +87,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-emerald-800 to-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 sm:p-10 rounded-2xl shadow-2xl border border-emerald-100">
-        
+    <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-emerald-800 to-gray-900 flex items-center justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-6 sm:space-y-8 bg-white p-6 sm:p-10 rounded-2xl shadow-2xl border border-emerald-100">
+
         {/* Header Logo & Instansi */}
         <div className="text-center">
           <div className="mx-auto h-16 w-16 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center text-3xl font-bold shadow-inner mb-4">
@@ -112,7 +112,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+        <form className="mt-6 sm:mt-8 space-y-5 sm:space-y-6" onSubmit={handleLogin}>
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
@@ -124,7 +124,7 @@ export default function LoginPage() {
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 placeholder="Contoh: 199108212023211018"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none transition shadow-xs"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition shadow-xs"
               />
             </div>
 
@@ -138,7 +138,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none transition shadow-xs"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition shadow-xs"
               />
             </div>
           </div>
@@ -163,7 +163,7 @@ export default function LoginPage() {
       {/* MODAL PILIH PERAN (MUNCUL JIKA PEGAWAI MERANGKAP ADMIN BIMAS / ADMIN KUA) */}
       {showRoleChooser && userProfile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 border border-emerald-100 text-center">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 border border-emerald-100 text-center max-h-[90vh] overflow-y-auto">
             <div className="w-14 h-14 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
               🎭
             </div>
@@ -177,40 +177,42 @@ export default function LoginPage() {
             <div className="space-y-3">
               {/* Pilihan 1: Masuk Sebagai Admin */}
               <button
+                type="button"
                 onClick={() => handleSelectMode('admin')}
-                className="w-full p-4 rounded-xl border-2 border-emerald-600 bg-emerald-50 hover:bg-emerald-100 text-left transition flex items-center justify-between group"
+                className="w-full p-4 rounded-xl border-2 border-emerald-600 bg-emerald-50 hover:bg-emerald-100 text-left transition flex items-center justify-between gap-3 group"
               >
-                <div>
+                <div className="min-w-0">
                   <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 block">
                     Mode Administrator
                   </span>
-                  <span className="text-sm font-bold text-gray-900">
+                  <span className="text-sm font-bold text-gray-900 block break-words">
                     Masuk sebagai {userProfile.jabatan_admin === 'admin_bimas' ? 'Admin Bimas Islam' : `Admin ${userProfile.kua_wilayah || 'KUA'}`}
                   </span>
                   <span className="text-xs text-gray-600 block mt-0.5">
                     Kelola data kepegawaian & layanan unit kerja
                   </span>
                 </div>
-                <span className="text-emerald-700 font-bold text-lg group-hover:translate-x-1 transition">→</span>
+                <span className="text-emerald-700 font-bold text-lg group-hover:translate-x-1 transition shrink-0">→</span>
               </button>
 
               {/* Pilihan 2: Masuk Sebagai Pegawai */}
               <button
+                type="button"
                 onClick={() => handleSelectMode('pegawai')}
-                className="w-full p-4 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-left transition flex items-center justify-between group"
+                className="w-full p-4 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-left transition flex items-center justify-between gap-3 group"
               >
-                <div>
+                <div className="min-w-0">
                   <span className="text-xs font-bold uppercase tracking-wider text-gray-500 block">
                     Mode Personal
                   </span>
-                  <span className="text-sm font-bold text-gray-900">
+                  <span className="text-sm font-bold text-gray-900 block">
                     Masuk sebagai Pegawai
                   </span>
                   <span className="text-xs text-gray-500 block mt-0.5">
                     Lihat & perbarui biodata kepegawaian pribadi
                   </span>
                 </div>
-                <span className="text-gray-400 font-bold text-lg group-hover:translate-x-1 transition">→</span>
+                <span className="text-gray-400 font-bold text-lg group-hover:translate-x-1 transition shrink-0">→</span>
               </button>
             </div>
           </div>
