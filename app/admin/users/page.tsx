@@ -352,7 +352,7 @@ export default function UserManagementPage() {
                 <h4 className="text-sm font-bold text-gray-900">{toast.title}</h4>
                 <p className="text-xs text-gray-600 mt-0.5 break-words">{toast.message}</p>
               </div>
-              <button onClick={() => setToast(null)} className="text-gray-400 font-bold p-1 shrink-0">✕</button>
+              <button type="button" onClick={() => setToast(null)} className="text-gray-400 font-bold p-1 shrink-0">✕</button>
             </div>
           )}
 

@@ -150,9 +150,11 @@ export default function PengaturanAkunPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex">
         <Sidebar />
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           <HeaderBar />
-          <main className="flex-1 flex items-center justify-center text-sm text-gray-500">Memuat profil akun...</main>
+          <main className="flex-1 flex items-center justify-center text-sm text-gray-500 p-6 pb-24 md:pb-10">
+            Memuat profil akun...
+          </main>
         </div>
       </div>
     );
@@ -167,26 +169,26 @@ export default function PengaturanAkunPage() {
       <div className="flex-1 flex flex-col min-w-0">
         <HeaderBar />
 
-        <main className="flex-1 overflow-y-auto p-6 sm:p-10 relative">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-10 pb-24 md:pb-10 relative">
           
           {toast && (
-            <div className="fixed top-6 right-6 z-[9999] max-w-md w-full bg-white rounded-2xl shadow-2xl border-2 border-emerald-500 p-4 flex items-start gap-3.5 animate-fade-in">
+            <div className="fixed top-4 right-4 left-4 sm:left-auto sm:top-6 sm:right-6 z-[9999] max-w-md sm:w-full bg-white rounded-2xl shadow-2xl border-2 border-emerald-500 p-4 flex items-start gap-3.5 animate-fade-in">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold ${toast.type === 'success' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
                 {toast.type === 'success' ? '✓' : '⚠️'}
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <h4 className="text-sm font-bold text-gray-900">{toast.title}</h4>
-                <p className="text-xs text-gray-700 mt-0.5 font-medium">{toast.message}</p>
+                <p className="text-xs text-gray-700 mt-0.5 font-medium break-words">{toast.message}</p>
               </div>
-              <button onClick={() => setToast(null)} className="text-gray-400 hover:text-gray-700 font-bold p-1">✕</button>
+              <button type="button" onClick={() => setToast(null)} className="text-gray-400 hover:text-gray-700 font-bold p-1 shrink-0">✕</button>
             </div>
           )}
 
           <div className="max-w-3xl mx-auto">
-            <h1 className="text-2xl font-bold text-gray-900">Pengaturan Akun & Sandi Pribadi</h1>
-            <p className="text-sm text-gray-600 mt-1 mb-6">Kelola informasi profil, foto avatar, dan kata sandi login Anda</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Pengaturan Akun & Sandi Pribadi</h1>
+            <p className="text-xs sm:text-sm text-gray-600 mt-1 mb-6">Kelola informasi profil, foto avatar, dan kata sandi login Anda</p>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 sm:p-8">
               <form onSubmit={handleUpdateProfile} className="space-y-6">
                 
                 {/* Info Akun Dasar (Read Only) */}
@@ -223,7 +225,7 @@ export default function PengaturanAkunPage() {
                           <span>{inisial}</span>
                         )}
                       </div>
-                      <div className="flex-1 text-center sm:text-left">
+                      <div className="flex-1 text-center sm:text-left min-w-0">
                         <label className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-xl text-xs font-bold cursor-pointer transition shadow-2xs">
                           <span>📷</span> Pilih Foto Baru
                           <input
@@ -237,7 +239,7 @@ export default function PengaturanAkunPage() {
                           Format: JPG, PNG, atau WebP. <strong>Maksimal ukuran 500 KB</strong>.
                         </p>
                         {selectedFile && (
-                          <p className="text-[11px] font-semibold text-emerald-700 mt-1">
+                          <p className="text-[11px] font-semibold text-emerald-700 mt-1 break-all">
                             ✓ File siap diunggah: {selectedFile.name} ({Math.round(selectedFile.size / 1024)} KB)
                           </p>
                         )}
@@ -252,7 +254,8 @@ export default function PengaturanAkunPage() {
                       required
                       value={namaLengkap}
                       onChange={(e) => setNamaLengkap(e.target.value)}
-                      className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500"
+                      placeholder="Masukkan nama lengkap Anda"
+                      className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                     />
                   </div>
                 </div>
@@ -268,7 +271,7 @@ export default function PengaturanAkunPage() {
                         value={passwordBaru}
                         onChange={(e) => setPasswordBaru(e.target.value)}
                         placeholder="Kosongkan jika tidak diubah"
-                        className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500"
+                        className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                       />
                     </div>
                     <div>
@@ -278,7 +281,7 @@ export default function PengaturanAkunPage() {
                         value={konfirmasiSandi}
                         onChange={(e) => setKonfirmasiSandi(e.target.value)}
                         placeholder="Ulangi sandi baru"
-                        className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500"
+                        className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -288,7 +291,7 @@ export default function PengaturanAkunPage() {
                   <button
                     type="submit"
                     disabled={processing}
-                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-md disabled:opacity-50"
+                    className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-md disabled:opacity-50"
                   >
                     {processing ? 'Menyimpan & Mengunggah...' : 'Simpan Perubahan Akun'}
                   </button>

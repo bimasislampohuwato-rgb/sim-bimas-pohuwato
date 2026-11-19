@@ -185,18 +185,18 @@ export default function AdminPtspPage() {
       <div className="flex-1 flex flex-col min-w-0">
         <HeaderBar />
 
-        <main className="flex-1 overflow-y-auto p-6 sm:p-10 relative">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-10 pb-24 md:pb-10 relative">
           
           {toast && (
-            <div className="fixed top-6 right-6 z-[9999] max-w-md w-full bg-white rounded-2xl shadow-2xl border-2 border-emerald-500 p-4 flex items-start gap-3.5">
+            <div className="fixed top-4 right-4 left-4 sm:left-auto sm:top-6 sm:right-6 z-[9999] max-w-md sm:w-full bg-white rounded-2xl shadow-2xl border-2 border-emerald-500 p-4 flex items-start gap-3.5">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold ${toast.type === 'success' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
                 {toast.type === 'success' ? '✓' : '⚠️'}
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <h4 className="text-sm font-bold text-gray-900">{toast.title}</h4>
-                <p className="text-xs text-gray-700 mt-0.5 font-medium">{toast.message}</p>
+                <p className="text-xs text-gray-700 mt-0.5 font-medium break-words">{toast.message}</p>
               </div>
-              <button onClick={() => setToast(null)} className="text-gray-400 hover:text-gray-700 font-bold p-1">✕</button>
+              <button type="button" onClick={() => setToast(null)} className="text-gray-400 hover:text-gray-700 font-bold p-1 shrink-0">✕</button>
             </div>
           )}
 
@@ -204,25 +204,26 @@ export default function AdminPtspPage() {
             
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Kelola Verifikasi PTSP Publik</h1>
-                <p className="text-sm text-gray-600 mt-1">Verifikasi berkas masuk dan permohonan layanan keagamaan masyarakat</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Kelola Verifikasi PTSP Publik</h1>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">Verifikasi berkas masuk dan permohonan layanan keagamaan masyarakat</p>
               </div>
               <Link
                 href="/admin/ptsp/layanan"
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-2"
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-2 w-full sm:w-auto"
               >
                 <span>⚙️</span> Kelola Master Jenis Layanan & Persyaratan
               </Link>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="w-full sm:w-96">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-6 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+              <div className="relative w-full sm:w-96">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">🔍</span>
                 <input
                   type="text"
                   placeholder="Cari nomor tiket, nama pemohon, NIK, atau layanan..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-xs focus:ring-2 focus:ring-emerald-500"
+                  className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-300 rounded-xl text-xs text-gray-800 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
               </div>
               <div className="text-xs font-semibold text-gray-600">
@@ -231,63 +232,116 @@ export default function AdminPtspPage() {
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 text-sm">
-                  <thead className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider text-left">
-                    <tr>
-                      <th className="px-6 py-3.5 font-semibold">No</th>
-                      <th className="px-6 py-3.5 font-semibold">Tiket & Tanggal</th>
-                      <th className="px-6 py-3.5 font-semibold">Pemohon & NIK</th>
-                      <th className="px-6 py-3.5 font-semibold">Jenis Layanan</th>
-                      <th className="px-6 py-3.5 font-semibold">Status</th>
-                      <th className="px-6 py-3.5 font-semibold text-right">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 bg-white">
-                    {loading ? (
-                      <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500">Memuat permohonan...</td></tr>
-                    ) : filteredData.length === 0 ? (
-                      <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500">Belum ada permohonan PTSP masuk.</td></tr>
-                    ) : (
-                      filteredData.map((item, idx) => (
-                        <tr key={item.id || idx} className="hover:bg-gray-50 transition">
-                          <td className="px-6 py-4 text-gray-500 text-xs">{idx + 1}</td>
-                          <td className="px-6 py-4">
-                            <div className="font-mono font-bold text-emerald-800 text-xs">{item.nomor_tiket}</div>
-                            <div className="text-[11px] text-gray-400 mt-0.5">
-                              {new Date(item.created_at).toLocaleDateString('id-ID', { dateStyle: 'medium' })}
+              {loading ? (
+                <div className="px-6 py-12 text-center text-gray-500 text-sm">Memuat permohonan...</div>
+              ) : filteredData.length === 0 ? (
+                <div className="px-6 py-12 text-center text-gray-500 text-sm">Belum ada permohonan PTSP masuk.</div>
+              ) : (
+                <>
+                  {/* TAMPILAN KARTU KHUSUS LAYAR HP (< md) */}
+                  <div className="md:hidden divide-y divide-gray-100 bg-white">
+                    {filteredData.map((item, idx) => (
+                      <div key={item.id || idx} className="p-4 space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[11px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
+                                #{idx + 1}
+                              </span>
+                              <span className="font-mono font-bold text-emerald-800 text-xs break-all">
+                                {item.nomor_tiket}
+                              </span>
                             </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="font-bold text-gray-900">{item.nama_pemohon}</div>
-                            <div className="font-mono text-xs text-gray-500">NIK: {item.nik_pemohon}</div>
-                            <div className="text-[11px] text-emerald-700">📞 {item.no_hp}</div>
-                            {item.email && <div className="text-[11px] text-gray-500">✉️ {item.email}</div>}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200">
-                              {item.jenis_layanan}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`px-3 py-1 text-xs font-bold rounded-full border ${getStatusBadge(item.status)}`}>
-                              {item.status || 'Menunggu Verifikasi'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-right whitespace-nowrap">
-                            <button
-                              onClick={() => openActionModal(item)}
-                              className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-xl text-xs font-bold transition"
-                            >
-                              Verifikasi / Proses
-                            </button>
-                          </td>
+                            <p className="text-[11px] text-gray-400 mt-1">
+                              {new Date(item.created_at).toLocaleDateString('id-ID', { dateStyle: 'medium' })}
+                            </p>
+                          </div>
+                          <span className={`shrink-0 px-2.5 py-1 text-[11px] font-bold rounded-full border ${getStatusBadge(item.status)}`}>
+                            {item.status || 'Menunggu Verifikasi'}
+                          </span>
+                        </div>
+
+                        <div className="space-y-1 text-xs">
+                          <div className="font-bold text-sm text-gray-900 break-words">{item.nama_pemohon}</div>
+                          <div className="font-mono text-gray-600 break-all">NIK: {item.nik_pemohon}</div>
+                          <div className="text-emerald-700 font-medium">📞 {item.no_hp}</div>
+                          {item.email && <div className="text-gray-500 break-all">✉️ {item.email}</div>}
+                        </div>
+
+                        <div>
+                          <span className="inline-block px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 break-words">
+                            {item.jenis_layanan}
+                          </span>
+                        </div>
+
+                        <div className="pt-1">
+                          <button
+                            type="button"
+                            onClick={() => openActionModal(item)}
+                            className="w-full py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-xl text-xs font-bold transition text-center"
+                          >
+                            Verifikasi / Proses
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* TAMPILAN TABEL DESKTOP (>= md) */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 text-sm">
+                      <thead className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider text-left">
+                        <tr>
+                          <th className="px-6 py-3.5 font-semibold">No</th>
+                          <th className="px-6 py-3.5 font-semibold">Tiket & Tanggal</th>
+                          <th className="px-6 py-3.5 font-semibold">Pemohon & NIK</th>
+                          <th className="px-6 py-3.5 font-semibold">Jenis Layanan</th>
+                          <th className="px-6 py-3.5 font-semibold">Status</th>
+                          <th className="px-6 py-3.5 font-semibold text-right">Aksi</th>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 bg-white">
+                        {filteredData.map((item, idx) => (
+                          <tr key={item.id || idx} className="hover:bg-gray-50 transition">
+                            <td className="px-6 py-4 text-gray-500 text-xs">{idx + 1}</td>
+                            <td className="px-6 py-4">
+                              <div className="font-mono font-bold text-emerald-800 text-xs">{item.nomor_tiket}</div>
+                              <div className="text-[11px] text-gray-400 mt-0.5">
+                                {new Date(item.created_at).toLocaleDateString('id-ID', { dateStyle: 'medium' })}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="font-bold text-gray-900">{item.nama_pemohon}</div>
+                              <div className="font-mono text-xs text-gray-500">NIK: {item.nik_pemohon}</div>
+                              <div className="text-[11px] text-emerald-700">📞 {item.no_hp}</div>
+                              {item.email && <div className="text-[11px] text-gray-500">✉️ {item.email}</div>}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                {item.jenis_layanan}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`px-3 py-1 text-xs font-bold rounded-full border ${getStatusBadge(item.status)}`}>
+                                {item.status || 'Menunggu Verifikasi'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right whitespace-nowrap">
+                              <button
+                                type="button"
+                                onClick={() => openActionModal(item)}
+                                className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-xl text-xs font-bold transition"
+                              >
+                                Verifikasi / Proses
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
             </div>
 
           </div>

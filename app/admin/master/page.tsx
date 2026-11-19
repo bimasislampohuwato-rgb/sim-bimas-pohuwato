@@ -358,18 +358,18 @@ export default function MasterDataPage() {
       <div className="flex-1 flex flex-col min-w-0">
         <HeaderBar />
 
-        <main className="flex-1 overflow-y-auto p-6 sm:p-10 relative">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-10 pb-24 md:pb-10 relative">
           
           {toast && (
-            <div className="fixed top-6 right-6 z-[9999] max-w-md w-full bg-white rounded-2xl shadow-2xl border-2 border-gray-200 p-4 flex items-start gap-3.5 animate-fade-in">
+            <div className="fixed top-4 right-4 left-4 sm:left-auto sm:top-6 sm:right-6 z-[9999] max-w-md sm:w-full bg-white rounded-2xl shadow-2xl border-2 border-gray-200 p-4 flex items-start gap-3.5 animate-fade-in">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold ${toast.type === 'success' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
                 {toast.type === 'success' ? '✓' : '⚠️'}
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <h4 className="text-sm font-bold text-gray-900">{toast.title}</h4>
-                <p className="text-xs text-gray-700 mt-0.5 font-medium">{toast.message}</p>
+                <p className="text-xs text-gray-700 mt-0.5 font-medium break-words">{toast.message}</p>
               </div>
-              <button onClick={() => setToast(null)} className="text-gray-400 hover:text-gray-700 font-bold p-1">✕</button>
+              <button type="button" onClick={() => setToast(null)} className="text-gray-400 hover:text-gray-700 font-bold p-1 shrink-0">✕</button>
             </div>
           )}
 
@@ -377,54 +377,60 @@ export default function MasterDataPage() {
             
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Master Data Utama</h1>
-                <p className="text-sm text-gray-600 mt-1">Kelola referensi data Jabatan, Kategori, Wilayah KUA, Kecamatan, dan Logo Instansi</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Master Data Utama</h1>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">Kelola referensi data Jabatan, Kategori, Wilayah KUA, Kecamatan, dan Logo Instansi</p>
               </div>
               {activeTab !== 'logo_instansi' && (
                 <button
+                  type="button"
                   onClick={openAddModal}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs transition shadow-md shadow-emerald-600/20"
+                  className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs transition shadow-md shadow-emerald-600/20 text-center"
                 >
                   + Tambah {getTabTitle()} Baru
                 </button>
               )}
             </div>
 
-            <div className="flex items-center gap-2 border-b border-gray-200 mb-6 overflow-x-auto">
+            <div className="flex items-center gap-2 border-b border-gray-200 mb-6 overflow-x-auto pb-0.5">
               <button
+                type="button"
                 onClick={() => setActiveTab('jabatan')}
-                className={`pb-3 px-4 text-sm font-bold transition border-b-2 whitespace-nowrap ${activeTab === 'jabatan' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                className={`pb-3 px-3 sm:px-4 text-xs sm:text-sm font-bold transition border-b-2 whitespace-nowrap ${activeTab === 'jabatan' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
               >
                 💼 Master Jabatan ({jabatanList.length})
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTab('kategori_jabatan')}
-                className={`pb-3 px-4 text-sm font-bold transition border-b-2 whitespace-nowrap ${activeTab === 'kategori_jabatan' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                className={`pb-3 px-3 sm:px-4 text-xs sm:text-sm font-bold transition border-b-2 whitespace-nowrap ${activeTab === 'kategori_jabatan' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
               >
                 🏷️ Kategori Jabatan ({kategoriJabatanList.length})
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTab('kua')}
-                className={`pb-3 px-4 text-sm font-bold transition border-b-2 whitespace-nowrap ${activeTab === 'kua' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                className={`pb-3 px-3 sm:px-4 text-xs sm:text-sm font-bold transition border-b-2 whitespace-nowrap ${activeTab === 'kua' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
               >
                 🕌 Master Unit KUA ({kuaList.length})
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTab('kecamatan')}
-                className={`pb-3 px-4 text-sm font-bold transition border-b-2 whitespace-nowrap ${activeTab === 'kecamatan' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                className={`pb-3 px-3 sm:px-4 text-xs sm:text-sm font-bold transition border-b-2 whitespace-nowrap ${activeTab === 'kecamatan' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
               >
                 📍 Master Kecamatan ({kecamatanList.length})
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTab('logo_instansi')}
-                className={`pb-3 px-4 text-sm font-bold transition border-b-2 whitespace-nowrap ${activeTab === 'logo_instansi' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                className={`pb-3 px-3 sm:px-4 text-xs sm:text-sm font-bold transition border-b-2 whitespace-nowrap ${activeTab === 'logo_instansi' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
               >
                 🖼️ Logo Instansi Sidebar
               </button>
             </div>
 
             {activeTab === 'logo_instansi' ? (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 sm:p-8">
                 <h3 className="text-base font-bold text-gray-900 mb-2">Konfigurasi Logo Resmi Bimas Islam</h3>
                 <p className="text-xs text-gray-500 mb-6">Unggah logo resmi instansi yang akan otomatis tampil di sudut kiri atas sidebar aplikasi.</p>
 
@@ -437,7 +443,7 @@ export default function MasterDataPage() {
                         <span>🕌</span>
                       )}
                     </div>
-                    <div className="flex-1 text-center sm:text-left">
+                    <div className="flex-1 text-center sm:text-left min-w-0">
                       <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-xl text-xs font-bold cursor-pointer transition shadow-2xs">
                         <span>📤</span> Pilih File Logo Instansi
                         <input
@@ -451,7 +457,7 @@ export default function MasterDataPage() {
                         Disarankan format PNG transparan atau JPG/WebP rasio persegi (1:1). <strong>Maksimal ukuran 1 MB</strong>.
                       </p>
                       {selectedLogoFile && (
-                        <p className="text-[11px] font-semibold text-emerald-700 mt-1">
+                        <p className="text-[11px] font-semibold text-emerald-700 mt-1 break-all">
                           ✓ File terpilih: {selectedLogoFile.name} ({Math.round(selectedLogoFile.size / 1024)} KB)
                         </p>
                       )}
@@ -462,7 +468,7 @@ export default function MasterDataPage() {
                     <button
                       type="submit"
                       disabled={processing || !selectedLogoFile}
-                      className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-md disabled:opacity-50"
+                      className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-md disabled:opacity-50"
                     >
                       {processing ? 'Mengunggah & Menyimpan...' : 'Simpan & Terapkan Logo'}
                     </button>
@@ -471,113 +477,254 @@ export default function MasterDataPage() {
               </div>
             ) : (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center text-xs font-semibold text-gray-600">
+                <div className="p-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 text-xs font-semibold text-gray-600">
                   <span>Daftar Referensi {getTabTitle().toUpperCase()}</span>
                   <span>Total Data: <strong className="text-emerald-700">{getTotalItems()} Item</strong></span>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 text-sm">
-                    <thead className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider text-left">
-                      <tr>
-                        <th className="px-6 py-3.5 font-semibold">No</th>
-                        {activeTab === 'kecamatan' ? (
-                          <>
-                            <th className="px-6 py-3.5 font-semibold">Kode Kecamatan</th>
-                            <th className="px-6 py-3.5 font-semibold">Nama Kecamatan</th>
-                          </>
-                        ) : activeTab === 'jabatan' ? (
-                          <>
-                            <th className="px-6 py-3.5 font-semibold">Nama Jabatan</th>
-                            <th className="px-6 py-3.5 font-semibold">Kategori</th>
-                            <th className="px-6 py-3.5 font-semibold">Deskripsi</th>
-                          </>
-                        ) : activeTab === 'kategori_jabatan' ? (
-                          <>
-                            <th className="px-6 py-3.5 font-semibold">Nama Kategori Jabatan</th>
-                            <th className="px-6 py-3.5 font-semibold">Deskripsi / Keterangan</th>
-                          </>
-                        ) : (
-                          <>
-                            <th className="px-6 py-3.5 font-semibold">Nama Unit / KUA</th>
-                            <th className="px-6 py-3.5 font-semibold">Alamat Kantor</th>
-                            <th className="px-6 py-3.5 font-semibold">Telepon / Email</th>
-                            <th className="px-6 py-3.5 font-semibold">Kecamatan</th>
-                          </>
-                        )}
-                        <th className="px-6 py-3.5 font-semibold text-right">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 bg-white">
-                      {loading ? (
-                        <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-500">Memuat data master...</td></tr>
-                      ) : activeTab === 'jabatan' ? (
-                        jabatanList.map((item, idx) => (
-                          <tr key={item.id || idx} className="hover:bg-gray-50 transition">
-                            <td className="px-6 py-4 text-gray-500">{idx + 1}</td>
-                            <td className="px-6 py-4 font-bold text-gray-900">{item.namaJabatan}</td>
-                            <td className="px-6 py-4">
-                              <span className="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200">
-                                {item.kategori || 'Umum'}
+                {loading ? (
+                  <div className="px-6 py-10 text-center text-gray-500 text-sm">Memuat data master...</div>
+                ) : (
+                  <>
+                    {/* TAMPILAN KARTU KHUSUS LAYAR HP (< md) */}
+                    <div className="md:hidden divide-y divide-gray-100 bg-white">
+                      {activeTab === 'jabatan' && jabatanList.map((item, idx) => (
+                        <div key={item.id || idx} className="p-4 space-y-2.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <span className="text-[11px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
+                                #{idx + 1}
                               </span>
-                            </td>
-                            <td className="px-6 py-4 text-xs text-gray-600">{item.deskripsi || '-'}</td>
-                            <td className="px-6 py-4 text-right whitespace-nowrap space-x-2">
-                              <button onClick={() => openEditModal(item)} className="text-emerald-700 hover:text-emerald-900 text-xs font-semibold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 transition">Edit</button>
-                              <button onClick={() => confirmDelete(item.id, item.namaJabatan)} className="text-red-600 hover:text-red-800 text-xs font-semibold bg-red-50 px-2.5 py-1 rounded-lg border border-red-200 transition">Hapus</button>
-                            </td>
-                          </tr>
-                        ))
-                      ) : activeTab === 'kategori_jabatan' ? (
-                        kategoriJabatanList.map((item, idx) => (
-                          <tr key={item.id || idx} className="hover:bg-gray-50 transition">
-                            <td className="px-6 py-4 text-gray-500">{idx + 1}</td>
-                            <td className="px-6 py-4 font-bold text-gray-900">{item.namaKategori}</td>
-                            <td className="px-6 py-4 text-xs text-gray-600">{item.deskripsi || '-'}</td>
-                            <td className="px-6 py-4 text-right whitespace-nowrap space-x-2">
-                              <button onClick={() => openEditModal(item)} className="text-emerald-700 hover:text-emerald-900 text-xs font-semibold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 transition">Edit</button>
-                              <button onClick={() => confirmDelete(item.id, item.namaKategori)} className="text-red-600 hover:text-red-800 text-xs font-semibold bg-red-50 px-2.5 py-1 rounded-lg border border-red-200 transition">Hapus</button>
-                            </td>
-                          </tr>
-                        ))
-                      ) : activeTab === 'kecamatan' ? (
-                        kecamatanList.map((item, idx) => (
-                          <tr key={item.id || idx} className="hover:bg-gray-50 transition">
-                            <td className="px-6 py-4 text-gray-500">{idx + 1}</td>
-                            <td className="px-6 py-4 font-mono text-xs text-emerald-800 font-bold">{item.kodeKecamatan}</td>
-                            <td className="px-6 py-4 font-bold text-gray-900">{item.namaKecamatan}</td>
-                            <td className="px-6 py-4 text-right whitespace-nowrap space-x-2">
-                              <button onClick={() => openEditModal(item)} className="text-emerald-700 hover:text-emerald-900 text-xs font-semibold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 transition">Edit</button>
-                              <button onClick={() => confirmDelete(item.id, item.namaKecamatan)} className="text-red-600 hover:text-red-800 text-xs font-semibold bg-red-50 px-2.5 py-1 rounded-lg border border-red-200 transition">Hapus</button>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        kuaList.map((item, idx) => {
-                          const matchedKec = kecamatanList.find(k => k.id === item.kecamatanId);
-                          return (
-                            <tr key={item.id || idx} className="hover:bg-gray-50 transition">
-                              <td className="px-6 py-4 text-gray-500">{idx + 1}</td>
-                              <td className="px-6 py-4 font-bold text-gray-900">{item.namaKua}</td>
-                              <td className="px-6 py-4 text-xs text-gray-600">{item.alamat || '-'}</td>
-                              <td className="px-6 py-4 text-xs text-gray-600">
-                                <div>{item.telepon || '-'}</div>
-                                <div className="text-emerald-800">{item.email || ''}</div>
-                              </td>
-                              <td className="px-6 py-4 text-xs text-emerald-800 font-semibold">
+                              <div className="font-bold text-sm text-gray-900 mt-1 break-words">{item.namaJabatan}</div>
+                            </div>
+                            <span className="shrink-0 px-2.5 py-0.5 text-[11px] font-bold rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200">
+                              {item.kategori || 'Umum'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-600 break-words">{item.deskripsi || '-'}</p>
+                          <div className="flex items-center gap-2 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(item)}
+                              className="flex-1 py-2 text-emerald-700 hover:text-emerald-900 text-xs font-bold bg-emerald-50 rounded-xl border border-emerald-200 transition text-center"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => confirmDelete(item.id, item.namaJabatan)}
+                              className="flex-1 py-2 text-red-600 hover:text-red-800 text-xs font-bold bg-red-50 rounded-xl border border-red-200 transition text-center"
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {activeTab === 'kategori_jabatan' && kategoriJabatanList.map((item, idx) => (
+                        <div key={item.id || idx} className="p-4 space-y-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
+                              #{idx + 1}
+                            </span>
+                            <div className="font-bold text-sm text-gray-900 break-words">{item.namaKategori}</div>
+                          </div>
+                          <p className="text-xs text-gray-600 break-words">{item.deskripsi || '-'}</p>
+                          <div className="flex items-center gap-2 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(item)}
+                              className="flex-1 py-2 text-emerald-700 hover:text-emerald-900 text-xs font-bold bg-emerald-50 rounded-xl border border-emerald-200 transition text-center"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => confirmDelete(item.id, item.namaKategori)}
+                              className="flex-1 py-2 text-red-600 hover:text-red-800 text-xs font-bold bg-red-50 rounded-xl border border-red-200 transition text-center"
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {activeTab === 'kecamatan' && kecamatanList.map((item, idx) => (
+                        <div key={item.id || idx} className="p-4 space-y-2.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <span className="text-[11px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
+                                #{idx + 1}
+                              </span>
+                              <div className="font-bold text-sm text-gray-900 mt-1 break-words">{item.namaKecamatan}</div>
+                            </div>
+                            <span className="shrink-0 font-mono text-xs text-emerald-800 font-bold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                              {item.kodeKecamatan}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(item)}
+                              className="flex-1 py-2 text-emerald-700 hover:text-emerald-900 text-xs font-bold bg-emerald-50 rounded-xl border border-emerald-200 transition text-center"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => confirmDelete(item.id, item.namaKecamatan)}
+                              className="flex-1 py-2 text-red-600 hover:text-red-800 text-xs font-bold bg-red-50 rounded-xl border border-red-200 transition text-center"
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {activeTab === 'kua' && kuaList.map((item, idx) => {
+                        const matchedKec = kecamatanList.find(k => k.id === item.kecamatanId);
+                        return (
+                          <div key={item.id || idx} className="p-4 space-y-2.5">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <span className="text-[11px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
+                                  #{idx + 1}
+                                </span>
+                                <div className="font-bold text-sm text-gray-900 mt-1 break-words">{item.namaKua}</div>
+                              </div>
+                              <span className="shrink-0 text-[11px] text-emerald-800 font-bold bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200">
                                 {matchedKec ? matchedKec.namaKecamatan : '-'}
-                              </td>
-                              <td className="px-6 py-4 text-right whitespace-nowrap space-x-2">
-                                <button onClick={() => openEditModal(item)} className="text-emerald-700 hover:text-emerald-900 text-xs font-semibold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 transition">Edit</button>
-                                <button onClick={() => confirmDelete(item.id, item.namaKua)} className="text-red-600 hover:text-red-800 text-xs font-semibold bg-red-50 px-2.5 py-1 rounded-lg border border-red-200 transition">Hapus</button>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-600 space-y-1 bg-gray-50/80 p-3 rounded-xl border border-gray-100">
+                              <div><span className="font-semibold text-gray-500">Alamat:</span> {item.alamat || '-'}</div>
+                              <div><span className="font-semibold text-gray-500">Telepon:</span> {item.telepon || '-'}</div>
+                              {item.email && <div className="text-emerald-800 break-all">{item.email}</div>}
+                            </div>
+                            <div className="flex items-center gap-2 pt-1">
+                              <button
+                                type="button"
+                                onClick={() => openEditModal(item)}
+                                className="flex-1 py-2 text-emerald-700 hover:text-emerald-900 text-xs font-bold bg-emerald-50 rounded-xl border border-emerald-200 transition text-center"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => confirmDelete(item.id, item.namaKua)}
+                                className="flex-1 py-2 text-red-600 hover:text-red-800 text-xs font-bold bg-red-50 rounded-xl border border-red-200 transition text-center"
+                              >
+                                Hapus
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* TAMPILAN TABEL DESKTOP (>= md) */}
+                    <div className="hidden md:block overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200 text-sm">
+                        <thead className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider text-left">
+                          <tr>
+                            <th className="px-6 py-3.5 font-semibold">No</th>
+                            {activeTab === 'kecamatan' ? (
+                              <>
+                                <th className="px-6 py-3.5 font-semibold">Kode Kecamatan</th>
+                                <th className="px-6 py-3.5 font-semibold">Nama Kecamatan</th>
+                              </>
+                            ) : activeTab === 'jabatan' ? (
+                              <>
+                                <th className="px-6 py-3.5 font-semibold">Nama Jabatan</th>
+                                <th className="px-6 py-3.5 font-semibold">Kategori</th>
+                                <th className="px-6 py-3.5 font-semibold">Deskripsi</th>
+                              </>
+                            ) : activeTab === 'kategori_jabatan' ? (
+                              <>
+                                <th className="px-6 py-3.5 font-semibold">Nama Kategori Jabatan</th>
+                                <th className="px-6 py-3.5 font-semibold">Deskripsi / Keterangan</th>
+                              </>
+                            ) : (
+                              <>
+                                <th className="px-6 py-3.5 font-semibold">Nama Unit / KUA</th>
+                                <th className="px-6 py-3.5 font-semibold">Alamat Kantor</th>
+                                <th className="px-6 py-3.5 font-semibold">Telepon / Email</th>
+                                <th className="px-6 py-3.5 font-semibold">Kecamatan</th>
+                              </>
+                            )}
+                            <th className="px-6 py-3.5 font-semibold text-right">Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 bg-white">
+                          {activeTab === 'jabatan' ? (
+                            jabatanList.map((item, idx) => (
+                              <tr key={item.id || idx} className="hover:bg-gray-50 transition">
+                                <td className="px-6 py-4 text-gray-500">{idx + 1}</td>
+                                <td className="px-6 py-4 font-bold text-gray-900">{item.namaJabatan}</td>
+                                <td className="px-6 py-4">
+                                  <span className="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                    {item.kategori || 'Umum'}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 text-xs text-gray-600">{item.deskripsi || '-'}</td>
+                                <td className="px-6 py-4 text-right whitespace-nowrap space-x-2">
+                                  <button type="button" onClick={() => openEditModal(item)} className="text-emerald-700 hover:text-emerald-900 text-xs font-semibold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 transition">Edit</button>
+                                  <button type="button" onClick={() => confirmDelete(item.id, item.namaJabatan)} className="text-red-600 hover:text-red-800 text-xs font-semibold bg-red-50 px-2.5 py-1 rounded-lg border border-red-200 transition">Hapus</button>
+                                </td>
+                              </tr>
+                            ))
+                          ) : activeTab === 'kategori_jabatan' ? (
+                            kategoriJabatanList.map((item, idx) => (
+                              <tr key={item.id || idx} className="hover:bg-gray-50 transition">
+                                <td className="px-6 py-4 text-gray-500">{idx + 1}</td>
+                                <td className="px-6 py-4 font-bold text-gray-900">{item.namaKategori}</td>
+                                <td className="px-6 py-4 text-xs text-gray-600">{item.deskripsi || '-'}</td>
+                                <td className="px-6 py-4 text-right whitespace-nowrap space-x-2">
+                                  <button type="button" onClick={() => openEditModal(item)} className="text-emerald-700 hover:text-emerald-900 text-xs font-semibold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 transition">Edit</button>
+                                  <button type="button" onClick={() => confirmDelete(item.id, item.namaKategori)} className="text-red-600 hover:text-red-800 text-xs font-semibold bg-red-50 px-2.5 py-1 rounded-lg border border-red-200 transition">Hapus</button>
+                                </td>
+                              </tr>
+                            ))
+                          ) : activeTab === 'kecamatan' ? (
+                            kecamatanList.map((item, idx) => (
+                              <tr key={item.id || idx} className="hover:bg-gray-50 transition">
+                                <td className="px-6 py-4 text-gray-500">{idx + 1}</td>
+                                <td className="px-6 py-4 font-mono text-xs text-emerald-800 font-bold">{item.kodeKecamatan}</td>
+                                <td className="px-6 py-4 font-bold text-gray-900">{item.namaKecamatan}</td>
+                                <td className="px-6 py-4 text-right whitespace-nowrap space-x-2">
+                                  <button type="button" onClick={() => openEditModal(item)} className="text-emerald-700 hover:text-emerald-900 text-xs font-semibold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 transition">Edit</button>
+                                  <button type="button" onClick={() => confirmDelete(item.id, item.namaKecamatan)} className="text-red-600 hover:text-red-800 text-xs font-semibold bg-red-50 px-2.5 py-1 rounded-lg border border-red-200 transition">Hapus</button>
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            kuaList.map((item, idx) => {
+                              const matchedKec = kecamatanList.find(k => k.id === item.kecamatanId);
+                              return (
+                                <tr key={item.id || idx} className="hover:bg-gray-50 transition">
+                                  <td className="px-6 py-4 text-gray-500">{idx + 1}</td>
+                                  <td className="px-6 py-4 font-bold text-gray-900">{item.namaKua}</td>
+                                  <td className="px-6 py-4 text-xs text-gray-600">{item.alamat || '-'}</td>
+                                  <td className="px-6 py-4 text-xs text-gray-600">
+                                    <div>{item.telepon || '-'}</div>
+                                    <div className="text-emerald-800">{item.email || ''}</div>
+                                  </td>
+                                  <td className="px-6 py-4 text-xs text-emerald-800 font-semibold">
+                                    {matchedKec ? matchedKec.namaKecamatan : '-'}
+                                  </td>
+                                  <td className="px-6 py-4 text-right whitespace-nowrap space-x-2">
+                                    <button type="button" onClick={() => openEditModal(item)} className="text-emerald-700 hover:text-emerald-900 text-xs font-semibold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 transition">Edit</button>
+                                    <button type="button" onClick={() => confirmDelete(item.id, item.namaKua)} className="text-red-600 hover:text-red-800 text-xs font-semibold bg-red-50 px-2.5 py-1 rounded-lg border border-red-200 transition">Hapus</button>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
@@ -586,7 +733,7 @@ export default function MasterDataPage() {
           {/* MODAL FORM TAMBAH / EDIT */}
           {showModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-emerald-100">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-emerald-100 max-h-[90vh] overflow-y-auto">
                 <h3 className="text-lg font-bold text-gray-900 mb-1">{editId ? 'Edit' : 'Tambah'} Master {getTabTitle().toUpperCase()}</h3>
                 <p className="text-xs text-gray-500 mb-4">Kelola data referensi dalam database Supabase.</p>
 
@@ -601,7 +748,7 @@ export default function MasterDataPage() {
                           value={inputNamaKua}
                           onChange={(e) => setInputNamaKua(e.target.value)}
                           placeholder="Contoh: KUA Kecamatan Dengilo / Seksi Bimas Islam"
-                          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500"
+                          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500"
                         />
                       </div>
                       <div>
@@ -611,10 +758,10 @@ export default function MasterDataPage() {
                           value={inputAlamatKua}
                           onChange={(e) => setInputAlamatKua(e.target.value)}
                           placeholder="Contoh: Jl. Trans Sulawesi..."
-                          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500"
+                          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500"
                         />
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         <div>
                           <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Telepon</label>
                           <input
@@ -622,7 +769,7 @@ export default function MasterDataPage() {
                             value={inputTeleponKua}
                             onChange={(e) => setInputTeleponKua(e.target.value)}
                             placeholder="0812..."
-                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500"
+                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500"
                           />
                         </div>
                         <div>
@@ -632,7 +779,7 @@ export default function MasterDataPage() {
                             value={inputEmailKua}
                             onChange={(e) => setInputEmailKua(e.target.value)}
                             placeholder="kua@..."
-                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500"
+                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500"
                           />
                         </div>
                       </div>
@@ -642,7 +789,7 @@ export default function MasterDataPage() {
                           value={inputKecamatanIdKua}
                           onChange={(e) => setInputKecamatanIdKua(e.target.value)}
                           required
-                          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
+                          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-emerald-500"
                         >
                           <option value="">-- Pilih Kecamatan --</option>
                           {kecamatanList.map((kec) => (
@@ -661,7 +808,7 @@ export default function MasterDataPage() {
                           value={inputField1}
                           onChange={(e) => setInputField1(e.target.value)}
                           placeholder="Contoh: Pengelola Keuangan"
-                          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500"
+                          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500"
                         />
                       </div>
                       <div>
@@ -670,7 +817,7 @@ export default function MasterDataPage() {
                           value={inputKategoriJabatan}
                           onChange={(e) => setInputKategoriJabatan(e.target.value)}
                           required
-                          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
+                          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-emerald-500"
                         >
                           <option value="">-- Pilih Kategori Jabatan --</option>
                           {kategoriJabatanList.map((kat) => (
@@ -685,7 +832,7 @@ export default function MasterDataPage() {
                           value={inputField2}
                           onChange={(e) => setInputField2(e.target.value)}
                           placeholder="Keterangan tambahan..."
-                          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500"
+                          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500"
                         />
                       </div>
                     </>
@@ -699,7 +846,7 @@ export default function MasterDataPage() {
                           value={inputField1}
                           onChange={(e) => setInputField1(e.target.value)}
                           placeholder="Contoh: Fungsional"
-                          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500"
+                          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500"
                         />
                       </div>
                       <div>
@@ -709,7 +856,7 @@ export default function MasterDataPage() {
                           value={inputField2}
                           onChange={(e) => setInputField2(e.target.value)}
                           placeholder="Keterangan jenis jabatan..."
-                          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500"
+                          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500"
                         />
                       </div>
                     </>
@@ -723,7 +870,7 @@ export default function MasterDataPage() {
                           value={inputField1}
                           onChange={(e) => setInputField1(e.target.value)}
                           placeholder="75.04.14"
-                          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500"
+                          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500"
                         />
                       </div>
                       <div>
@@ -734,7 +881,7 @@ export default function MasterDataPage() {
                           value={inputField2}
                           onChange={(e) => setInputField2(e.target.value)}
                           placeholder="Contoh: Taluditi"
-                          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500"
+                          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500"
                         />
                       </div>
                     </>
