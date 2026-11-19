@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import * as XLSX from 'xlsx';
 import { createClient } from '@supabase/supabase-js';
 import Sidebar from '@/src/components/Sidebar';
 import HeaderBar from '@/src/components/HeaderBar';
@@ -10,226 +11,393 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-export type KebimasKategori =
-  | 'masjid_mushalla'
-  | 'arah_kiblat'
-  | 'ormas_islam'
-  | 'paham_keagamaan'
-  | 'majelis_taklim'
-  | 'data_lain';
+export type MasjidSubMenuKey = 'masjid' | 'sdm_masjid' | 'arah_kiblat';
 
-interface TabConfig {
-  key: KebimasKategori;
-  label: string;
-  shortLabel: string;
-  icon: string;
-  description: string;
-  namaLabel: string;
-  namaPlaceholder: string;
-  pjLabel: string;
-  pjPlaceholder: string;
-  extra1Label: string;
-  extra1Placeholder: string;
-  extra2Label: string;
-  extra2Placeholder: string;
-  statusOptions: string[];
-  adminOnly?: boolean;
+interface MasjidRecord {
+  id: string;
+  id_masjid_simas: string | null;
+  id_baru_simas: string | null;
+  nama_masjid: string;
+  provinsi: string | null;
+  kabupaten_kota: string | null;
+  kecamatan: string | null;
+  tipologi: string | null;
+  status_tanah: string | null;
+  alamat: string | null;
+  tahun_berdiri: string | null;
+  luas_tanah: string | null;
+  luas_bangunan: string | null;
+  telepon: string | null;
+  email: string | null;
+  latitude_simas: number | null;
+  longitude_simas: number | null;
+  sumber_data: string | null;
+  updated_at?: string;
 }
 
-const TAB_CONFIGS: TabConfig[] = [
+interface SdmRecord {
+  id?: string;
+  masjid_id: string | null;
+  id_masjid_simas: string | null;
+  nama_masjid: string;
+  kecamatan: string | null;
+  jumlah_pengurus: number;
+  ketua_pengurus: string;
+  no_hp_ketua: string;
+  nama_sekretaris: string;
+  no_hp_sekretaris: string;
+  daftar_imam: string[];
+  daftar_khatib: string[];
+  daftar_muazin: string[];
+  jumlah_remaja: number;
+  ketua_remaja: string;
+  kategori_jamaah: string;
+}
+
+interface KiblatRecord {
+  id?: string;
+  masjid_id: string | null;
+  id_masjid_simas: string | null;
+  nama_masjid: string;
+  kecamatan: string | null;
+  latitude: number | null;
+  lintang_utara: string;
+  longitude: number | null;
+  bujur_timur: string;
+  azimut_bangunan: number | null;
+  elevasi_tempat: number | null;
+  azimut_kiblat: number | null;
+  penyimpangan: number | null;
+  status_penyimpangan: string;
+  tanggal_pengukuran: string;
+  foto_kalibrasi_url: string;
+  catatan: string;
+}
+
+const JAMAAH_OPTIONS = ['50 - 100', '100 - 150', '150 - 200', '200 - 1000', '> 1000'];
+
+const SUBMENU_ITEMS: { key: MasjidSubMenuKey; title: string; subtitle: string; icon: string }[] = [
   {
-    key: 'masjid_mushalla',
-    label: 'Masjid & Mushalla',
-    shortLabel: 'Masjid/Mushalla',
+    key: 'masjid',
+    title: 'Data Masjid & Mushalla (SIMAS)',
+    subtitle: 'Data resmi masjid terdaftar hasil import Excel SIMAS Kemenag RI dengan filter Kecamatan & Tipologi.',
     icon: '🕌',
-    description: 'Pendataan profil, tipologi, pengurus DKM, dan status Masjid serta Mushalla.',
-    namaLabel: 'Nama Masjid / Mushalla',
-    namaPlaceholder: 'Contoh: Masjid Agung Baiturrahim',
-    pjLabel: 'Ketua DKM / Pengurus',
-    pjPlaceholder: 'Contoh: H. Ahmad Fauzi',
-    extra1Label: 'Tipologi (Masjid / Mushalla / Jami)',
-    extra1Placeholder: 'Contoh: Masjid Jami',
-    extra2Label: 'Tahun Berdiri / Luas Tanah',
-    extra2Placeholder: 'Contoh: 1998 / 450 m²',
-    statusOptions: ['Terverifikasi', 'Terdaftar', 'Perlu Pembinaan'],
+  },
+  {
+    key: 'sdm_masjid',
+    title: 'SDM Masjid',
+    subtitle: 'Pengelolaan pengurus DKM, sekretaris, imam, khatib, muazin, remaja masjid, dan jumlah jamaah.',
+    icon: '👥',
   },
   {
     key: 'arah_kiblat',
-    label: 'Arah Kiblat Masjid & Mushalla',
-    shortLabel: 'Arah Kiblat',
+    title: 'Kalibrasi Arah Kiblat',
+    subtitle: 'Pencatatan koordinat, azimut bangunan & kiblat, penyimpangan otomatis, tanggal ukur, dan foto kalibrasi.',
     icon: '🧭',
-    description: 'Pencatatan hasil pengukuran arah kiblat, deviasi sudut, dan rujukan layanan PTSP.',
-    namaLabel: 'Nama Masjid / Mushalla yang Diukur',
-    namaPlaceholder: 'Contoh: Mushalla Al-Hidayah Marisa',
-    pjLabel: 'Petugas Pengukur / Tim Hisab Rukyat',
-    pjPlaceholder: 'Contoh: Tim Bimas Islam & Kemenag',
-    extra1Label: 'Hasil Sudut / Azimuth & Deviasi',
-    extra1Placeholder: 'Contoh: 292°15\' (Selisih 1,5°)',
-    extra2Label: 'Rujukan / Keterangan Lokasi',
-    extra2Placeholder: 'Contoh: Pengukuran ulang titik mihrab',
-    statusOptions: ['Sesuai', 'Perlu Koreksi', 'Terverifikasi'],
-  },
-  {
-    key: 'ormas_islam',
-    label: 'Ormas Islam',
-    shortLabel: 'Ormas Islam',
-    icon: '🤝',
-    description: 'Pendataan Organisasi Kemasyarakatan Islam, kepengurusan, dan legalitas.',
-    namaLabel: 'Nama Organisasi Kemasyarakatan Islam',
-    namaPlaceholder: 'Contoh: Pengurus Cabang ...',
-    pjLabel: 'Ketua / Penanggung Jawab',
-    pjPlaceholder: 'Nama ketua / pengurus',
-    extra1Label: 'Tingkat Kepengurusan',
-    extra1Placeholder: 'Contoh: Cabang / Daerah / PAC',
-    extra2Label: 'Legalitas / SK / Nomor Induk',
-    extra2Placeholder: 'Contoh: Terdaftar / SK No. ...',
-    statusOptions: ['Terdaftar', 'Terverifikasi', 'Perlu Pembinaan'],
-  },
-  {
-    key: 'paham_keagamaan',
-    label: 'Paham Aliran Keagamaan',
-    shortLabel: 'Paham Keagamaan',
-    icon: '🛡️',
-    description: 'Pemantauan dan pembinaan paham/aliran keagamaan secara terkoordinasi.',
-    namaLabel: 'Nama Paham / Kelompok / Komunitas',
-    namaPlaceholder: 'Nama kelompok / paham yang dipantau',
-    pjLabel: 'Tokoh / Penanggung Jawab / Koordinator',
-    pjPlaceholder: 'Nama tokoh / kontak koordinasi',
-    extra1Label: 'Fokus Pemantauan / Karakteristik',
-    extra1Placeholder: 'Contoh: Kajian / Aktivitas rutin',
-    extra2Label: 'Instansi / Unsur Terkait',
-    extra2Placeholder: 'Contoh: Kemenag / FKUB / Pemerintah Desa',
-    statusOptions: ['Dalam Pemantauan', 'Perlu Pembinaan', 'Terverifikasi'],
-    adminOnly: true,
-  },
-  {
-    key: 'majelis_taklim',
-    label: 'Majelis Taklim',
-    shortLabel: 'Majelis Taklim',
-    icon: '📖',
-    description: 'Pendataan Majelis Taklim, pimpinan/ustaz, jadwal pengajian, dan jamaah.',
-    namaLabel: 'Nama Majelis Taklim',
-    namaPlaceholder: 'Contoh: Majelis Taklim Nurul Iman',
-    pjLabel: 'Pimpinan / Ustaz / Ketua Pengurus',
-    pjPlaceholder: 'Nama pimpinan / ketua majelis',
-    extra1Label: 'Jadwal & Rutinitas Pengajian',
-    extra1Placeholder: 'Contoh: Setiap Jumat Pagi',
-    extra2Label: 'Perkiraan Jumlah Jamaah',
-    extra2Placeholder: 'Contoh: 45 Jamaah',
-    statusOptions: ['Terdaftar', 'Terverifikasi', 'Perlu Pembinaan'],
-  },
-  {
-    key: 'data_lain',
-    label: 'Data Lain',
-    shortLabel: 'Data Lain',
-    icon: '🗂️',
-    description: 'Pendataan tambahan Kebimasislaman sesuai kebutuhan layanan dan pengembangan modul.',
-    namaLabel: 'Judul / Nama Data Kebimasislaman',
-    namaPlaceholder: 'Nama entitas / program / pendataan tambahan',
-    pjLabel: 'Penanggung Jawab / Pengelola',
-    pjPlaceholder: 'Nama penanggung jawab',
-    extra1Label: 'Sub-Kategori / Jenis Data',
-    extra1Placeholder: 'Contoh: Rumah Ibadah / Kegiatan / Pendataan',
-    extra2Label: 'Atribut Tambahan',
-    extra2Placeholder: 'Informasi tambahan sesuai kebutuhan',
-    statusOptions: ['Terverifikasi', 'Terdaftar', 'Dalam Pemantauan'],
   },
 ];
 
-const parseKategoriParam = (raw: string | null): KebimasKategori | null => {
-  if (!raw) return null;
-  return TAB_CONFIGS.some((t) => t.key === raw) ? (raw as KebimasKategori) : null;
+function parseNumberOrNull(val: any): number | null {
+  if (val === null || val === undefined || val === '') return null;
+  if (typeof val === 'number') return Number.isFinite(val) ? val : null;
+  const cleaned = String(val).replace(',', '.').replace(/[^0-9.-]/g, '');
+  if (!cleaned || cleaned === '-' || cleaned === '.') return null;
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseIntOrZero(val: any): number {
+  if (val === null || val === undefined || val === '') return 0;
+  const parsed = parseInt(String(val).replace(/[^0-9-]/g, ''), 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+}
+
+function splitListField(val: any): string[] {
+  if (!val) return [];
+  if (Array.isArray(val)) return val.map((x) => String(x).trim()).filter(Boolean);
+  return String(val)
+    .split(/[\n;|,]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function hitungPenyimpangan(azimutBangunan: number | null, azimutKiblat: number | null): {
+  selisih: number | null;
+  status: string;
+} {
+  if (azimutBangunan === null || azimutKiblat === null) {
+    return { selisih: null, status: 'Belum Dihitung' };
+  }
+  const rawSelisih = azimutBangunan - azimutKiblat;
+  const selisih = Number(rawSelisih.toFixed(4));
+  const absSelisih = Math.abs(selisih);
+  const status = absSelisih <= 1.0 ? 'Sesuai / Presisi' : 'Perlu Koreksi';
+  return { selisih, status };
+}
+
+function formatPenyimpangan(val: number | null): string {
+  if (val === null || Number.isNaN(val)) return '-';
+  const sign = val > 0 ? '+' : '';
+  return `${sign}${val.toFixed(2)}°`;
+}
+
+async function compressCalibrationImage(file: File): Promise<{ blob: Blob; ext: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX_WIDTH = 1280;
+        const MAX_HEIGHT = 1280;
+        let { width, height } = img;
+
+        if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+          const ratio = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Gagal menyiapkan kanvas kompresi gambar.'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+
+        let quality = 0.72;
+        const tryEncode = () => {
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error('Gagal mengompresi foto kalibrasi.'));
+                return;
+              }
+              if (blob.size > 320 * 1024 && quality > 0.42) {
+                quality = Number((quality - 0.1).toFixed(2));
+                tryEncode();
+              } else {
+                resolve({ blob, ext: 'jpg' });
+              }
+            },
+            'image/jpeg',
+            quality
+          );
+        };
+        tryEncode();
+      };
+      img.onerror = () => reject(new Error('File gambar tidak valid atau rusak.'));
+      img.src = String(ev.target?.result || '');
+    };
+    reader.onerror = () => reject(new Error('Gagal membaca file gambar.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+const parseSubMenuParam = (raw: string | null): MasjidSubMenuKey => {
+  if (raw === 'sdm_masjid' || raw === 'arah_kiblat' || raw === 'masjid') {
+    return raw;
+  }
+  return 'masjid';
 };
 
 export default function KebimasislamanPage() {
   const router = useRouter();
 
-  const [currentUser, setCurrentUser] = useState<any>(null);
   const [activeMode, setActiveMode] = useState<string>('pegawai');
-  const [activeTab, setActiveTab] = useState<KebimasKategori>('masjid_mushalla');
+  const [activeSubMenu, setActiveSubMenu] = useState<MasjidSubMenuKey>('masjid');
 
-  const [records, setRecords] = useState<any[]>([]);
-  const [kecamatanList, setKecamatanList] = useState<string[]>([]);
+  const [masjidList, setMasjidList] = useState<MasjidRecord[]>([]);
+  const [sdmMap, setSdmMap] = useState<Record<string, SdmRecord>>({});
+  const [kiblatMap, setKiblatMap] = useState<Record<string, KiblatRecord>>({});
+  const [kecamatanMaster, setKecamatanMaster] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tableMissing, setTableMissing] = useState(false);
 
-  // Filter & Pencarian
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedKecamatan, setSelectedKecamatan] = useState<string>('ALL');
-  const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
-  const [selectedMonth, setSelectedMonth] = useState<string>('ALL');
+  // Filter Data Masjid (Kecamatan & Tipologi + Pencarian)
+  const [searchMasjid, setSearchMasjid] = useState('');
+  const [filterKecamatan, setFilterKecamatan] = useState('ALL');
+  const [filterTipologi, setFilterTipologi] = useState('ALL');
 
-  // Modal Tambah / Edit
-  const [showModal, setShowModal] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [namaObjek, setNamaObjek] = useState('');
-  const [kecamatan, setKecamatan] = useState('');
-  const [alamatLokasi, setAlamatLokasi] = useState('');
-  const [penanggungJawab, setPenanggungJawab] = useState('');
-  const [noHp, setNoHp] = useState('');
-  const [statusData, setStatusData] = useState('Terverifikasi');
-  const [tanggalCatatan, setTanggalCatatan] = useState('');
-  const [nomorTiketPtsp, setNomorTiketPtsp] = useState('');
-  const [linkDokumen, setLinkDokumen] = useState('');
-  const [extra1, setExtra1] = useState('');
-  const [extra2, setExtra2] = useState('');
-  const [catatanDetail, setCatatanDetail] = useState('');
+  // Filter SDM & Arah Kiblat
+  const [searchSub, setSearchSub] = useState('');
+  const [filterSubKecamatan, setFilterSubKecamatan] = useState('ALL');
+  const [filterKiblatStatus, setFilterKiblatStatus] = useState('ALL');
 
-  // Modal Hapus
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  // Modal Tambah/Edit Masjid
+  const [showMasjidModal, setShowMasjidModal] = useState(false);
+  const [editMasjidId, setEditMasjidId] = useState<string | null>(null);
+  const [mIdSimas, setMIdSimas] = useState('');
+  const [mIdBaru, setMIdBaru] = useState('');
+  const [mNama, setMNama] = useState('');
+  const [mKecamatan, setMKecamatan] = useState('');
+  const [mTipologi, setMTipologi] = useState('Masjid Jami');
+  const [mStatusTanah, setMStatusTanah] = useState('Wakaf');
+  const [mAlamat, setMAlamat] = useState('');
+  const [mTahunBerdiri, setMTahunBerdiri] = useState('');
+  const [mLuasTanah, setMLuasTanah] = useState('');
+  const [mLuasBangunan, setMLuasBangunan] = useState('');
+  const [mTelepon, setMTelepon] = useState('');
+  const [mEmail, setMEmail] = useState('');
+  const [mLat, setMLat] = useState('');
+  const [mLng, setMLng] = useState('');
+
+  // Modal Form SDM Masjid
+  const [showSdmModal, setShowSdmModal] = useState(false);
+  const [sdmSelectedMasjidId, setSdmSelectedMasjidId] = useState('');
+  const [sdmJumlahPengurus, setSdmJumlahPengurus] = useState<number>(0);
+  const [sdmKetuaPengurus, setSdmKetuaPengurus] = useState('');
+  const [sdmNoHpKetua, setSdmNoHpKetua] = useState('');
+  const [sdmNamaSekretaris, setSdmNamaSekretaris] = useState('');
+  const [sdmNoHpSekretaris, setSdmNoHpSekretaris] = useState('');
+  const [imamInput, setImamInput] = useState('');
+  const [sdmImamList, setSdmImamList] = useState<string[]>([]);
+  const [khatibInput, setKhatibInput] = useState('');
+  const [sdmKhatibList, setSdmKhatibList] = useState<string[]>([]);
+  const [muazinInput, setMuazinInput] = useState('');
+  const [sdmMuazinList, setSdmMuazinList] = useState<string[]>([]);
+  const [sdmJumlahRemaja, setSdmJumlahRemaja] = useState<number>(0);
+  const [sdmKetuaRemaja, setSdmKetuaRemaja] = useState('');
+  const [sdmKategoriJamaah, setSdmKategoriJamaah] = useState('50 - 100');
+
+  // Modal Form Kalibrasi Arah Kiblat
+  const [showKiblatModal, setShowKiblatModal] = useState(false);
+  const [kiblatSelectedMasjidId, setKiblatSelectedMasjidId] = useState('');
+  const [kLatitude, setKLatitude] = useState('');
+  const [kLintangUtara, setKLintangUtara] = useState('');
+  const [kLongitude, setKLongitude] = useState('');
+  const [kBujurTimur, setKBujurTimur] = useState('');
+  const [kAzimutBangunan, setKAzimutBangunan] = useState('');
+  const [kElevasiTempat, setKElevasiTempat] = useState('');
+  const [kAzimutKiblat, setKAzimutKiblat] = useState('');
+  const [kTanggalPengukuran, setKTanggalPengukuran] = useState('');
+  const [kFotoUrl, setKFotoUrl] = useState('');
+  const [kFotoFile, setKFotoFile] = useState<File | null>(null);
+  const [kFotoPreview, setKFotoPreview] = useState('');
+  const [kCatatan, setKCatatan] = useState('');
+
+  // Modal Import Excel (SIMAS / SDM / Arah Kiblat)
+  const [importMode, setImportMode] = useState<MasjidSubMenuKey | null>(null);
+  const [importRowsPreview, setImportRowsPreview] = useState<any[]>([]);
+  const [importFileName, setImportFileName] = useState('');
+
+  // Modal Hapus Masjid
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; nama: string } | null>(null);
 
   const [processing, setProcessing] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
 
-  const currentTabConfig = useMemo(
-    () => TAB_CONFIGS.find((t) => t.key === activeTab) || TAB_CONFIGS[0],
-    [activeTab]
+  const activeSubMenuMeta = useMemo(
+    () => SUBMENU_ITEMS.find((m) => m.key === activeSubMenu) || SUBMENU_ITEMS[0],
+    [activeSubMenu]
   );
 
-  const visibleTabs = useMemo(() => {
-    const canSeeSensitive = activeMode === 'super_admin' || activeMode === 'admin_bimas';
-    return TAB_CONFIGS.filter((t) => (!t.adminOnly ? true : canSeeSensitive));
-  }, [activeMode]);
-
-  const selectKategori = useCallback(
-    (kat: KebimasKategori, updateUrl = true) => {
-      setActiveTab(kat);
-      setSelectedStatus('ALL');
-      if (updateUrl && typeof window !== 'undefined') {
-        const url = new URL(window.location.href);
-        url.searchParams.set('kategori', kat);
-        window.history.replaceState({}, '', url.toString());
-      }
-    },
-    []
-  );
-
-  const triggerToast = (type: 'success' | 'error', title: string, message: string) => {
+  const triggerToast = useCallback((type: 'success' | 'error', title: string, message: string) => {
     setToast({ type, title, message });
     setTimeout(() => setToast(null), 6000);
-  };
+  }, []);
+
+  const navigateSubMenu = useCallback((key: MasjidSubMenuKey) => {
+    setActiveSubMenu(key);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('menu', key);
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
-    const initialKat = parseKategoriParam(params.get('kategori'));
-    if (initialKat) {
-      setActiveTab(initialKat);
-    }
+    setActiveSubMenu(parseSubMenuParam(params.get('menu')));
 
-    const handlePopState = () => {
+    const onPop = () => {
       const nextParams = new URLSearchParams(window.location.search);
-      const nextKat = parseKategoriParam(nextParams.get('kategori'));
-      if (nextKat) {
-        setActiveTab(nextKat);
-        setSelectedStatus('ALL');
-      }
+      setActiveSubMenu(parseSubMenuParam(nextParams.get('menu')));
     };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
   }, []);
+
+  const loadAllData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [kecRes, masjidRes, sdmRes, kiblatRes] = await Promise.all([
+        supabase.from('MasterKecamatan').select('namaKecamatan').order('namaKecamatan'),
+        supabase.from('masjid_mushalla').select('*').order('nama_masjid', { ascending: true }),
+        supabase.from('masjid_sdm').select('*'),
+        supabase.from('masjid_arah_kiblat').select('*'),
+      ]);
+
+      if (kecRes.data) {
+        const names = Array.from(
+          new Set(
+            kecRes.data
+              .map((k: any) => String(k.namaKecamatan || '').trim())
+              .filter(Boolean)
+          )
+        );
+        setKecamatanMaster(names);
+      }
+
+      const loadedMasjid: MasjidRecord[] = (masjidRes.data || []).map((m: any) => ({
+        ...m,
+        kecamatan: m.kecamatan ? String(m.kecamatan).trim() : null,
+        tipologi: m.tipologi ? String(m.tipologi).trim() : null,
+      }));
+      setMasjidList(loadedMasjid);
+
+      const sMap: Record<string, SdmRecord> = {};
+      (sdmRes.data || []).forEach((row: any) => {
+        const key = row.masjid_id || row.id_masjid_simas || row.nama_masjid;
+        if (key) {
+          sMap[key] = {
+            ...row,
+            jumlah_pengurus: Number(row.jumlah_pengurus || 0),
+            ketua_pengurus: row.ketua_pengurus || '',
+            no_hp_ketua: row.no_hp_ketua || '',
+            nama_sekretaris: row.nama_sekretaris || '',
+            no_hp_sekretaris: row.no_hp_sekretaris || '',
+            daftar_imam: splitListField(row.daftar_imam),
+            daftar_khatib: splitListField(row.daftar_khatib),
+            daftar_muazin: splitListField(row.daftar_muazin),
+            jumlah_remaja: Number(row.jumlah_remaja || 0),
+            ketua_remaja: row.ketua_remaja || '',
+            kategori_jamaah: row.kategori_jamaah || '50 - 100',
+          };
+        }
+      });
+      setSdmMap(sMap);
+
+      const kMap: Record<string, KiblatRecord> = {};
+      (kiblatRes.data || []).forEach((row: any) => {
+        const key = row.masjid_id || row.id_masjid_simas || row.nama_masjid;
+        if (key) {
+          kMap[key] = {
+            ...row,
+            latitude: parseNumberOrNull(row.latitude),
+            lintang_utara: row.lintang_utara || '',
+            longitude: parseNumberOrNull(row.longitude),
+            bujur_timur: row.bujur_timur || '',
+            azimut_bangunan: parseNumberOrNull(row.azimut_bangunan),
+            elevasi_tempat: parseNumberOrNull(row.elevasi_tempat),
+            azimut_kiblat: parseNumberOrNull(row.azimut_kiblat),
+            penyimpangan: parseNumberOrNull(row.penyimpangan),
+            status_penyimpangan: row.status_penyimpangan || 'Terverifikasi',
+            tanggal_pengukuran: row.tanggal_pengukuran ? String(row.tanggal_pengukuran).slice(0, 10) : '',
+            foto_kalibrasi_url: row.foto_kalibrasi_url || '',
+            catatan: row.catatan || '',
+          };
+        }
+      });
+      setKiblatMap(kMap);
+    } catch (err: any) {
+      triggerToast('error', 'Gagal Memuat Data', err?.message || 'Terjadi kesalahan saat memuat data.');
+    } finally {
+      setLoading(false);
+    }
+  }, [triggerToast]);
 
   useEffect(() => {
     async function init() {
@@ -241,7 +409,7 @@ export default function KebimasislamanPage() {
 
       const { data: prof } = await supabase
         .from('profiles')
-        .select('*')
+        .select('role, jabatan_admin')
         .eq('id', user.id)
         .single();
 
@@ -255,288 +423,810 @@ export default function KebimasislamanPage() {
         return;
       }
 
-      setCurrentUser(prof);
       setActiveMode(mode);
-
-      await Promise.all([loadKecamatanOptions(), loadRecords(prof, mode)]);
+      await loadAllData();
     }
     init();
-  }, [router]);
+  }, [router, loadAllData]);
 
-  useEffect(() => {
-    if (visibleTabs.length > 0 && !visibleTabs.some((t) => t.key === activeTab)) {
-      selectKategori(visibleTabs[0].key, true);
-    }
-  }, [visibleTabs, activeTab, selectKategori]);
-
-  async function loadKecamatanOptions() {
-    const { data: kecData } = await supabase
-      .from('MasterKecamatan')
-      .select('namaKecamatan')
-      .order('namaKecamatan', { ascending: true });
-
-    if (kecData && kecData.length > 0) {
-      const names = kecData
-        .map((k: any) => k.namaKecamatan)
-        .filter((n: string) => Boolean(n && n.trim()));
-      setKecamatanList(Array.from(new Set(names)));
-    }
-  }
-
-  async function loadRecords(prof: any, mode: string) {
-    setLoading(true);
-    setTableMissing(false);
-
-    let query = supabase
-      .from('kebimasislaman_data')
-      .select('*')
-      .order('updated_at', { ascending: false });
-
-    if (mode === 'admin_kua' && prof?.kua_wilayah) {
-      query = query.ilike('kecamatan', `%${prof.kua_wilayah.replace(/^KUA\s*(Kecamatan|Kec\.)?\s*/i, '').trim()}%`);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      if (
-        error.code === '42P01' ||
-        error.message.toLowerCase().includes('does not exist') ||
-        error.message.toLowerCase().includes('schema cache')
-      ) {
-        setTableMissing(true);
-        setRecords([]);
-      } else {
-        triggerToast('error', 'Gagal Memuat Data', error.message);
-      }
-    } else if (data) {
-      setRecords(data);
-    }
-
-    setLoading(false);
-  }
-
-  const getMonthKey = (item: any) => {
-    const raw = item.tanggal_catatan || item.created_at || item.updated_at;
-    if (!raw) return '';
-    const d = new Date(raw);
-    if (Number.isNaN(d.getTime())) return '';
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  };
-
-  const formatMonthLabel = (monthKey: string) => {
-    const [year, month] = monthKey.split('-');
-    const dateObj = new Date(Number(year), Number(month) - 1, 1);
-    if (Number.isNaN(dateObj.getTime())) return monthKey;
-    return dateObj.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
-  };
-
-  const tabRecords = useMemo(
-    () => records.filter((item) => item.kategori === activeTab),
-    [records, activeTab]
+  // Helper mencari data SDM / Kiblat untuk sebuah masjid
+  const getSdmForMasjid = useCallback(
+    (m: MasjidRecord): SdmRecord | undefined => {
+      return (
+        sdmMap[m.id] ||
+        (m.id_masjid_simas ? sdmMap[m.id_masjid_simas] : undefined) ||
+        sdmMap[m.nama_masjid]
+      );
+    },
+    [sdmMap]
   );
 
-  const tabCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    TAB_CONFIGS.forEach((t) => {
-      counts[t.key] = records.filter((r) => r.kategori === t.key).length;
-    });
-    return counts;
-  }, [records]);
+  const getKiblatForMasjid = useCallback(
+    (m: MasjidRecord): KiblatRecord | undefined => {
+      return (
+        kiblatMap[m.id] ||
+        (m.id_masjid_simas ? kiblatMap[m.id_masjid_simas] : undefined) ||
+        kiblatMap[m.nama_masjid]
+      );
+    },
+    [kiblatMap]
+  );
 
-  const kecamatanFilterOptions = useMemo(() => {
-    const set = new Set<string>(kecamatanList);
-    tabRecords.forEach((item) => {
-      if (item.kecamatan && item.kecamatan.trim()) {
-        set.add(item.kecamatan.trim());
-      }
+  // Opsi Filter Kecamatan & Tipologi
+  const kecamatanOptions = useMemo(() => {
+    const set = new Set<string>(kecamatanMaster);
+    masjidList.forEach((m) => {
+      if (m.kecamatan) set.add(m.kecamatan.trim());
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'id'));
-  }, [kecamatanList, tabRecords]);
+  }, [kecamatanMaster, masjidList]);
 
-  const monthFilterOptions = useMemo(() => {
-    const set = new Set<string>();
-    tabRecords.forEach((item) => {
-      const mKey = getMonthKey(item);
-      if (mKey) set.add(mKey);
+  const tipologiOptions = useMemo(() => {
+    const base = ['Masjid Agung', 'Masjid Besar', 'Masjid Jami', 'Masjid di Tempat Publik'];
+    const set = new Set<string>(base);
+    masjidList.forEach((m) => {
+      if (m.tipologi) set.add(m.tipologi.trim());
     });
-    return Array.from(set).sort((a, b) => b.localeCompare(a));
-  }, [tabRecords]);
+    return Array.from(set);
+  }, [masjidList]);
 
-  const filteredRecords = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+  // Data Masjid terfilter (Kecamatan & Tipologi + Pencarian)
+  const filteredMasjid = useMemo(() => {
+    const q = searchMasjid.trim().toLowerCase();
+    return masjidList.filter((m) => {
+      if (filterKecamatan !== 'ALL' && (m.kecamatan || '') !== filterKecamatan) return false;
+      if (filterTipologi !== 'ALL' && (m.tipologi || '') !== filterTipologi) return false;
+      if (!q) return true;
+      return (
+        m.nama_masjid?.toLowerCase().includes(q) ||
+        m.id_masjid_simas?.toLowerCase().includes(q) ||
+        m.id_baru_simas?.toLowerCase().includes(q) ||
+        m.kecamatan?.toLowerCase().includes(q) ||
+        m.tipologi?.toLowerCase().includes(q) ||
+        m.alamat?.toLowerCase().includes(q)
+      );
+    });
+  }, [masjidList, searchMasjid, filterKecamatan, filterTipologi]);
 
-    return tabRecords.filter((item) => {
-      if (selectedKecamatan !== 'ALL' && (item.kecamatan || '') !== selectedKecamatan) {
-        return false;
-      }
-      if (selectedStatus !== 'ALL' && (item.status_data || '') !== selectedStatus) {
-        return false;
-      }
-      if (selectedMonth !== 'ALL' && getMonthKey(item) !== selectedMonth) {
-        return false;
+  // Data terfilter untuk sub-menu SDM & Arah Kiblat
+  const filteredSubMasjid = useMemo(() => {
+    const q = searchSub.trim().toLowerCase();
+    return masjidList.filter((m) => {
+      if (filterSubKecamatan !== 'ALL' && (m.kecamatan || '') !== filterSubKecamatan) return false;
+      if (activeSubMenu === 'arah_kiblat' && filterKiblatStatus !== 'ALL') {
+        const k = getKiblatForMasjid(m);
+        if (filterKiblatStatus === 'SUDAH' && (!k || k.azimut_kiblat === null)) return false;
+        if (filterKiblatStatus === 'BELUM' && k && k.azimut_kiblat !== null) return false;
+        if (
+          (filterKiblatStatus === 'Sesuai / Presisi' || filterKiblatStatus === 'Perlu Koreksi') &&
+          k?.status_penyimpangan !== filterKiblatStatus
+        ) {
+          return false;
+        }
       }
       if (!q) return true;
-
-      const extraStr = item.data_tambahan ? JSON.stringify(item.data_tambahan).toLowerCase() : '';
+      const sdm = getSdmForMasjid(m);
       return (
-        item.nama_objek?.toLowerCase().includes(q) ||
-        item.kecamatan?.toLowerCase().includes(q) ||
-        item.alamat_lokasi?.toLowerCase().includes(q) ||
-        item.penanggung_jawab?.toLowerCase().includes(q) ||
-        item.no_hp?.toLowerCase().includes(q) ||
-        item.nomor_tiket_ptsp?.toLowerCase().includes(q) ||
-        item.catatan_detail?.toLowerCase().includes(q) ||
-        extraStr.includes(q)
+        m.nama_masjid?.toLowerCase().includes(q) ||
+        m.id_masjid_simas?.toLowerCase().includes(q) ||
+        m.kecamatan?.toLowerCase().includes(q) ||
+        sdm?.ketua_pengurus?.toLowerCase().includes(q) ||
+        sdm?.nama_sekretaris?.toLowerCase().includes(q)
       );
     });
-  }, [tabRecords, searchQuery, selectedKecamatan, selectedStatus, selectedMonth]);
+  }, [
+    masjidList,
+    searchSub,
+    filterSubKecamatan,
+    filterKiblatStatus,
+    activeSubMenu,
+    getKiblatForMasjid,
+    getSdmForMasjid,
+  ]);
 
-  const hasActiveFilters =
-    searchQuery.trim() !== '' ||
-    selectedKecamatan !== 'ALL' ||
-    selectedStatus !== 'ALL' ||
-    selectedMonth !== 'ALL';
+  // Kalkulasi live penyimpangan pada Modal Arah Kiblat
+  const liveKiblatCalc = useMemo(() => {
+    const azB = parseNumberOrNull(kAzimutBangunan);
+    const azK = parseNumberOrNull(kAzimutKiblat);
+    return hitungPenyimpangan(azB, azK);
+  }, [kAzimutBangunan, kAzimutKiblat]);
 
-  const resetFilters = () => {
-    setSearchQuery('');
-    setSelectedKecamatan('ALL');
-    setSelectedStatus('ALL');
-    setSelectedMonth('ALL');
+  // ==================== MODAL & CRUD MASJID ====================
+  const openAddMasjid = () => {
+    setEditMasjidId(null);
+    setMIdSimas('');
+    setMIdBaru('');
+    setMNama('');
+    setMKecamatan(kecamatanOptions[0] || '');
+    setMTipologi('Masjid Jami');
+    setMStatusTanah('Wakaf');
+    setMAlamat('');
+    setMTahunBerdiri('');
+    setMLuasTanah('');
+    setMLuasBangunan('');
+    setMTelepon('');
+    setMEmail('');
+    setMLat('');
+    setMLng('');
+    setShowMasjidModal(true);
   };
 
-  const openAddModal = () => {
-    setEditId(null);
-    setNamaObjek('');
-    setKecamatan(kecamatanFilterOptions[0] || '');
-    setAlamatLokasi('');
-    setPenanggungJawab('');
-    setNoHp('');
-    setStatusData(currentTabConfig.statusOptions[0] || 'Terverifikasi');
-    setTanggalCatatan(new Date().toISOString().slice(0, 10));
-    setNomorTiketPtsp('');
-    setLinkDokumen('');
-    setExtra1('');
-    setExtra2('');
-    setCatatanDetail('');
-    setShowModal(true);
+  const openEditMasjid = (m: MasjidRecord) => {
+    setEditMasjidId(m.id);
+    setMIdSimas(m.id_masjid_simas || '');
+    setMIdBaru(m.id_baru_simas || '');
+    setMNama(m.nama_masjid || '');
+    setMKecamatan(m.kecamatan || '');
+    setMTipologi(m.tipologi || 'Masjid Jami');
+    setMStatusTanah(m.status_tanah || 'Wakaf');
+    setMAlamat(m.alamat || '');
+    setMTahunBerdiri(m.tahun_berdiri || '');
+    setMLuasTanah(m.luas_tanah || '');
+    setMLuasBangunan(m.luas_bangunan || '');
+    setMTelepon(m.telepon || '');
+    setMEmail(m.email || '');
+    setMLat(m.latitude_simas !== null ? String(m.latitude_simas) : '');
+    setMLng(m.longitude_simas !== null ? String(m.longitude_simas) : '');
+    setShowMasjidModal(true);
   };
 
-  const openEditModal = (item: any) => {
-    const extra = item.data_tambahan && typeof item.data_tambahan === 'object' ? item.data_tambahan : {};
-    setEditId(item.id);
-    setNamaObjek(item.nama_objek || '');
-    setKecamatan(item.kecamatan || '');
-    setAlamatLokasi(item.alamat_lokasi || '');
-    setPenanggungJawab(item.penanggung_jawab || '');
-    setNoHp(item.no_hp || '');
-    setStatusData(item.status_data || currentTabConfig.statusOptions[0] || 'Terverifikasi');
-    setTanggalCatatan(
-      item.tanggal_catatan
-        ? String(item.tanggal_catatan).slice(0, 10)
-        : new Date().toISOString().slice(0, 10)
-    );
-    setNomorTiketPtsp(item.nomor_tiket_ptsp || '');
-    setLinkDokumen(item.link_dokumen || '');
-    setExtra1(extra.extra1 || '');
-    setExtra2(extra.extra2 || '');
-    setCatatanDetail(item.catatan_detail || '');
-    setShowModal(true);
-  };
-
-  const handleSaveRecord = async (e: React.FormEvent) => {
+  const handleSaveMasjid = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!namaObjek.trim()) return;
-
+    if (!mNama.trim()) return;
     setProcessing(true);
-    const nowIso = new Date().toISOString();
 
     const payload: any = {
-      kategori: activeTab,
-      nama_objek: namaObjek.trim(),
-      kecamatan: kecamatan.trim() || null,
-      alamat_lokasi: alamatLokasi.trim() || null,
-      penanggung_jawab: penanggungJawab.trim() || null,
-      no_hp: noHp.trim() || null,
-      status_data: statusData,
-      tanggal_catatan: tanggalCatatan || nowIso.slice(0, 10),
-      nomor_tiket_ptsp: nomorTiketPtsp.trim() || null,
-      link_dokumen: linkDokumen.trim() || null,
-      catatan_detail: catatanDetail.trim() || null,
-      data_tambahan: {
-        extra1: extra1.trim() || '',
-        extra2: extra2.trim() || '',
-      },
-      updated_at: nowIso,
+      id_masjid_simas: mIdSimas.trim() || null,
+      id_baru_simas: mIdBaru.trim() || null,
+      nama_masjid: mNama.trim(),
+      kecamatan: mKecamatan.trim() || null,
+      tipologi: mTipologi.trim() || null,
+      status_tanah: mStatusTanah.trim() || null,
+      alamat: mAlamat.trim() || null,
+      tahun_berdiri: mTahunBerdiri.trim() || null,
+      luas_tanah: mLuasTanah.trim() || null,
+      luas_bangunan: mLuasBangunan.trim() || null,
+      telepon: mTelepon.trim() || null,
+      email: mEmail.trim() || null,
+      latitude_simas: parseNumberOrNull(mLat),
+      longitude_simas: parseNumberOrNull(mLng),
+      sumber_data: editMasjidId ? undefined : 'SIMAS / Manual',
+      updated_at: new Date().toISOString(),
     };
+    if (payload.sumber_data === undefined) delete payload.sumber_data;
 
-    let error = null;
-
-    if (editId) {
-      const res = await supabase
-        .from('kebimasislaman_data')
-        .update(payload)
-        .eq('id', editId);
-      error = res.error;
-    } else {
-      payload.id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `kbm_${Date.now()}`;
-      payload.created_at = nowIso;
-      const res = await supabase.from('kebimasislaman_data').insert([payload]);
-      error = res.error;
-    }
+    const { error } = editMasjidId
+      ? await supabase.from('masjid_mushalla').update(payload).eq('id', editMasjidId)
+      : await supabase.from('masjid_mushalla').insert([payload]);
 
     setProcessing(false);
-
     if (error) {
-      triggerToast('error', 'Gagal Menyimpan Data', error.message);
+      triggerToast('error', 'Gagal Menyimpan Masjid', error.message);
     } else {
-      setShowModal(false);
+      setShowMasjidModal(false);
       triggerToast(
         'success',
-        editId ? 'Data Diperbarui' : 'Data Ditambahkan',
-        `"${namaObjek.trim()}" berhasil disimpan pada ${currentTabConfig.label}.`
+        editMasjidId ? 'Data Masjid Diperbarui' : 'Masjid Ditambahkan',
+        `"${mNama.trim()}" berhasil disimpan.`
       );
-      await loadRecords(currentUser, activeMode);
+      await loadAllData();
     }
   };
 
-  const confirmDelete = (item: any) => {
-    setDeleteTarget({ id: item.id, nama: item.nama_objek || 'Data ini' });
-    setShowDeleteModal(true);
-  };
-
-  const executeDelete = async () => {
+  const handleDeleteMasjid = async () => {
     if (!deleteTarget) return;
     setProcessing(true);
-
-    const { error } = await supabase
-      .from('kebimasislaman_data')
-      .delete()
-      .eq('id', deleteTarget.id);
-
+    const { error } = await supabase.from('masjid_mushalla').delete().eq('id', deleteTarget.id);
     setProcessing(false);
-    setShowDeleteModal(false);
-
+    setDeleteTarget(null);
     if (error) {
       triggerToast('error', 'Gagal Menghapus', error.message);
     } else {
       triggerToast('success', 'Berhasil Dihapus', `"${deleteTarget.nama}" telah dihapus.`);
-      setDeleteTarget(null);
-      await loadRecords(currentUser, activeMode);
+      await loadAllData();
     }
   };
 
-  const getStatusBadgeClass = (status: string) => {
-    if (status === 'Terverifikasi' || status === 'Terdaftar' || status === 'Sesuai') {
-      return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+  // ==================== MODAL & CRUD SDM MASJID ====================
+  const openSdmForm = (m?: MasjidRecord) => {
+    const targetMasjid = m || filteredSubMasjid[0] || masjidList[0];
+    const masjidId = targetMasjid?.id || '';
+    const existing = targetMasjid ? getSdmForMasjid(targetMasjid) : undefined;
+
+    setSdmSelectedMasjidId(masjidId);
+    setSdmJumlahPengurus(existing?.jumlah_pengurus || 0);
+    setSdmKetuaPengurus(existing?.ketua_pengurus || '');
+    setSdmNoHpKetua(existing?.no_hp_ketua || '');
+    setSdmNamaSekretaris(existing?.nama_sekretaris || '');
+    setSdmNoHpSekretaris(existing?.no_hp_sekretaris || '');
+    setImamInput('');
+    setSdmImamList(existing?.daftar_imam || []);
+    setKhatibInput('');
+    setSdmKhatibList(existing?.daftar_khatib || []);
+    setMuazinInput('');
+    setSdmMuazinList(existing?.daftar_muazin || []);
+    setSdmJumlahRemaja(existing?.jumlah_remaja || 0);
+    setSdmKetuaRemaja(existing?.ketua_remaja || '');
+    setSdmKategoriJamaah(existing?.kategori_jamaah || '50 - 100');
+    setShowSdmModal(true);
+  };
+
+  const handleSelectSdmMasjid = (newMasjidId: string) => {
+    setSdmSelectedMasjidId(newMasjidId);
+    const found = masjidList.find((item) => item.id === newMasjidId);
+    const existing = found ? getSdmForMasjid(found) : undefined;
+    setSdmJumlahPengurus(existing?.jumlah_pengurus || 0);
+    setSdmKetuaPengurus(existing?.ketua_pengurus || '');
+    setSdmNoHpKetua(existing?.no_hp_ketua || '');
+    setSdmNamaSekretaris(existing?.nama_sekretaris || '');
+    setSdmNoHpSekretaris(existing?.no_hp_sekretaris || '');
+    setSdmImamList(existing?.daftar_imam || []);
+    setSdmKhatibList(existing?.daftar_khatib || []);
+    setSdmMuazinList(existing?.daftar_muazin || []);
+    setSdmJumlahRemaja(existing?.jumlah_remaja || 0);
+    setSdmKetuaRemaja(existing?.ketua_remaja || '');
+    setSdmKategoriJamaah(existing?.kategori_jamaah || '50 - 100');
+  };
+
+  const addPersonTag = (
+    rawText: string,
+    list: string[],
+    setList: React.Dispatch<React.SetStateAction<string[]>>,
+    clearInput: React.Dispatch<React.SetStateAction<string>>
+  ) => {
+    const pieces = splitListField(rawText);
+    if (pieces.length === 0) return;
+    setList([...list, ...pieces]);
+    clearInput('');
+  };
+
+  const handleSaveSdm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const targetMasjid = masjidList.find((m) => m.id === sdmSelectedMasjidId);
+    if (!targetMasjid) {
+      triggerToast('error', 'Pilih Masjid', 'Silakan pilih masjid/mushalla terlebih dahulu.');
+      return;
     }
-    if (status === 'Dalam Pemantauan') {
-      return 'bg-blue-100 text-blue-800 border-blue-300';
+
+    setProcessing(true);
+    const finalImam = imamInput.trim() ? [...sdmImamList, ...splitListField(imamInput)] : sdmImamList;
+    const finalKhatib = khatibInput.trim() ? [...sdmKhatibList, ...splitListField(khatibInput)] : sdmKhatibList;
+    const finalMuazin = muazinInput.trim() ? [...sdmMuazinList, ...splitListField(muazinInput)] : sdmMuazinList;
+
+    const payload = {
+      masjid_id: targetMasjid.id,
+      id_masjid_simas: targetMasjid.id_masjid_simas || null,
+      nama_masjid: targetMasjid.nama_masjid,
+      kecamatan: targetMasjid.kecamatan || null,
+      jumlah_pengurus: Number(sdmJumlahPengurus || 0),
+      ketua_pengurus: sdmKetuaPengurus.trim() || null,
+      no_hp_ketua: sdmNoHpKetua.trim() || null,
+      nama_sekretaris: sdmNamaSekretaris.trim() || null,
+      no_hp_sekretaris: sdmNoHpSekretaris.trim() || null,
+      daftar_imam: finalImam,
+      daftar_khatib: finalKhatib,
+      daftar_muazin: finalMuazin,
+      jumlah_remaja: Number(sdmJumlahRemaja || 0),
+      ketua_remaja: sdmKetuaRemaja.trim() || null,
+      kategori_jamaah: sdmKategoriJamaah || '50 - 100',
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await supabase
+      .from('masjid_sdm')
+      .upsert(payload, { onConflict: 'masjid_id' });
+
+    setProcessing(false);
+    if (error) {
+      triggerToast('error', 'Gagal Menyimpan SDM Masjid', error.message);
+    } else {
+      setShowSdmModal(false);
+      triggerToast('success', 'SDM Masjid Tersimpan', `Data SDM "${targetMasjid.nama_masjid}" berhasil disimpan.`);
+      await loadAllData();
     }
-    if (status === 'Perlu Koreksi' || status === 'Perlu Pembinaan') {
-      return 'bg-amber-100 text-amber-900 border-amber-300';
+  };
+
+  // ==================== MODAL & CRUD ARAH KIBLAT ====================
+  const openKiblatForm = (m?: MasjidRecord) => {
+    const targetMasjid = m || filteredSubMasjid[0] || masjidList[0];
+    const existing = targetMasjid ? getKiblatForMasjid(targetMasjid) : undefined;
+
+    setKiblatSelectedMasjidId(targetMasjid?.id || '');
+    setKLatitude(
+      existing?.latitude !== null && existing?.latitude !== undefined
+        ? String(existing.latitude)
+        : targetMasjid?.latitude_simas !== null && targetMasjid?.latitude_simas !== undefined
+        ? String(targetMasjid.latitude_simas)
+        : ''
+    );
+    setKLintangUtara(existing?.lintang_utara || '');
+    setKLongitude(
+      existing?.longitude !== null && existing?.longitude !== undefined
+        ? String(existing.longitude)
+        : targetMasjid?.longitude_simas !== null && targetMasjid?.longitude_simas !== undefined
+        ? String(targetMasjid.longitude_simas)
+        : ''
+    );
+    setKBujurTimur(existing?.bujur_timur || '');
+    setKAzimutBangunan(
+      existing?.azimut_bangunan !== null && existing?.azimut_bangunan !== undefined
+        ? String(existing.azimut_bangunan)
+        : ''
+    );
+    setKElevasiTempat(
+      existing?.elevasi_tempat !== null && existing?.elevasi_tempat !== undefined
+        ? String(existing.elevasi_tempat)
+        : ''
+    );
+    setKAzimutKiblat(
+      existing?.azimut_kiblat !== null && existing?.azimut_kiblat !== undefined
+        ? String(existing.azimut_kiblat)
+        : ''
+    );
+    setKTanggalPengukuran(existing?.tanggal_pengukuran || new Date().toISOString().slice(0, 10));
+    setKFotoUrl(existing?.foto_kalibrasi_url || '');
+    setKFotoFile(null);
+    setKFotoPreview(existing?.foto_kalibrasi_url || '');
+    setKCatatan(existing?.catatan || '');
+    setShowKiblatModal(true);
+  };
+
+  const handleSelectKiblatMasjid = (newMasjidId: string) => {
+    setKiblatSelectedMasjidId(newMasjidId);
+    const found = masjidList.find((item) => item.id === newMasjidId);
+    const existing = found ? getKiblatForMasjid(found) : undefined;
+    setKLatitude(
+      existing?.latitude !== null && existing?.latitude !== undefined
+        ? String(existing.latitude)
+        : found?.latitude_simas !== null && found?.latitude_simas !== undefined
+        ? String(found.latitude_simas)
+        : ''
+    );
+    setKLintangUtara(existing?.lintang_utara || '');
+    setKLongitude(
+      existing?.longitude !== null && existing?.longitude !== undefined
+        ? String(existing.longitude)
+        : found?.longitude_simas !== null && found?.longitude_simas !== undefined
+        ? String(found.longitude_simas)
+        : ''
+    );
+    setKBujurTimur(existing?.bujur_timur || '');
+    setKAzimutBangunan(
+      existing?.azimut_bangunan !== null && existing?.azimut_bangunan !== undefined
+        ? String(existing.azimut_bangunan)
+        : ''
+    );
+    setKElevasiTempat(
+      existing?.elevasi_tempat !== null && existing?.elevasi_tempat !== undefined
+        ? String(existing.elevasi_tempat)
+        : ''
+    );
+    setKAzimutKiblat(
+      existing?.azimut_kiblat !== null && existing?.azimut_kiblat !== undefined
+        ? String(existing.azimut_kiblat)
+        : ''
+    );
+    setKTanggalPengukuran(existing?.tanggal_pengukuran || new Date().toISOString().slice(0, 10));
+    setKFotoUrl(existing?.foto_kalibrasi_url || '');
+    setKFotoFile(null);
+    setKFotoPreview(existing?.foto_kalibrasi_url || '');
+    setKCatatan(existing?.catatan || '');
+  };
+
+  const handleFotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      triggerToast('error', 'Format File Tidak Sesuai', 'Pilih file gambar (JPG, PNG, atau WebP).');
+      return;
     }
-    return 'bg-gray-100 text-gray-800 border-gray-300';
+    setKFotoFile(file);
+    const localUrl = URL.createObjectURL(file);
+    setKFotoPreview(localUrl);
+  };
+
+  const handleSaveKiblat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const targetMasjid = masjidList.find((m) => m.id === kiblatSelectedMasjidId);
+    if (!targetMasjid) {
+      triggerToast('error', 'Pilih Masjid', 'Silakan pilih masjid/mushalla terlebih dahulu.');
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      let uploadedPhotoUrl = kFotoUrl || null;
+
+      if (kFotoFile) {
+        const { blob, ext } = await compressCalibrationImage(kFotoFile);
+        const safeId = (targetMasjid.id_masjid_simas || targetMasjid.id).replace(/[^a-zA-Z0-9_-]/g, '_');
+        const filePath = `${safeId}_${Date.now()}.${ext}`;
+
+        const { error: uploadErr } = await supabase.storage
+          .from('kalibrasi-kiblat')
+          .upload(filePath, blob, {
+            contentType: 'image/jpeg',
+            upsert: true,
+          });
+
+        if (uploadErr) {
+          throw new Error(`Upload foto gagal: ${uploadErr.message}`);
+        }
+
+        const { data: pubData } = supabase.storage
+          .from('kalibrasi-kiblat')
+          .getPublicUrl(filePath);
+        uploadedPhotoUrl = pubData.publicUrl;
+      }
+
+      const latNum = parseNumberOrNull(kLatitude);
+      const lngNum = parseNumberOrNull(kLongitude);
+      const azB = parseNumberOrNull(kAzimutBangunan);
+      const azK = parseNumberOrNull(kAzimutKiblat);
+      const elevNum = parseNumberOrNull(kElevasiTempat);
+      const calc = hitungPenyimpangan(azB, azK);
+
+      const payload = {
+        masjid_id: targetMasjid.id,
+        id_masjid_simas: targetMasjid.id_masjid_simas || null,
+        nama_masjid: targetMasjid.nama_masjid,
+        kecamatan: targetMasjid.kecamatan || null,
+        latitude: latNum,
+        lintang_utara: kLintangUtara.trim() || null,
+        longitude: lngNum,
+        bujur_timur: kBujurTimur.trim() || null,
+        azimut_bangunan: azB,
+        elevasi_tempat: elevNum,
+        azimut_kiblat: azK,
+        penyimpangan: calc.selisih,
+        status_penyimpangan: calc.status,
+        tanggal_pengukuran: kTanggalPengukuran || new Date().toISOString().slice(0, 10),
+        foto_kalibrasi_url: uploadedPhotoUrl,
+        catatan: kCatatan.trim() || null,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase
+        .from('masjid_arah_kiblat')
+        .upsert(payload, { onConflict: 'masjid_id' });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      setShowKiblatModal(false);
+      triggerToast(
+        'success',
+        'Kalibrasi Arah Kiblat Tersimpan',
+        `Data arah kiblat "${targetMasjid.nama_masjid}" berhasil disimpan.`
+      );
+      await loadAllData();
+    } catch (err: any) {
+      triggerToast('error', 'Gagal Menyimpan Arah Kiblat', err?.message || 'Terjadi kesalahan.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  // ==================== IMPORT EXCEL (SIMAS / SDM / ARAH KIBLAT) ====================
+  const openImportModal = (mode: MasjidSubMenuKey) => {
+    setImportMode(mode);
+    setImportFileName('');
+    setImportRowsPreview([]);
+  };
+
+  const downloadExcelTemplate = (mode: 'sdm_masjid' | 'arah_kiblat') => {
+    const sampleMasjid = masjidList[0];
+    if (mode === 'sdm_masjid') {
+      const templateData = [
+        {
+          'ID Masjid': sampleMasjid?.id_masjid_simas || '01.3.28.04.05.000001',
+          'Nama Masjid': sampleMasjid?.nama_masjid || 'BAITURRAHMAN',
+          'Kecamatan': sampleMasjid?.kecamatan || 'Paguat',
+          'Jumlah Pengurus': 12,
+          'Ketua Pengurus': 'H. Ahmad Fauzi',
+          'No HP Ketua': '081234567890',
+          'Nama Sekretaris': 'Muhamad Rizki',
+          'No HP Sekretaris': '085234567891',
+          'Imam': 'Ust. Abdullah; Ust. Rahman',
+          'Khatib': 'Ust. Mansur; Ust. Saleh',
+          'Muazin': 'Bapak Karim; Bapak Hasan',
+          'Jumlah Remaja': 25,
+          'Ketua Remaja': 'Rizal Pratama',
+          'Jumlah Jamaah': '200 - 1000',
+        },
+      ];
+      const ws = XLSX.utils.json_to_sheet(templateData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Template_SDM_Masjid');
+      XLSX.writeFile(wb, 'Template_Import_SDM_Masjid.xlsx');
+    } else {
+      const templateData = [
+        {
+          'ID Masjid': sampleMasjid?.id_masjid_simas || '01.3.28.04.05.000001',
+          'Nama Masjid': sampleMasjid?.nama_masjid || 'BAITURRAHMAN',
+          'Kecamatan': sampleMasjid?.kecamatan || 'Paguat',
+          'Latitude': 0.507535,
+          'Lintang Utara': "00° 30' 27.13\" LU",
+          'Longitude': 122.076154,
+          'Bujur Timur': "122° 04' 34.15\" BT",
+          'Azimut Bangunan': 291.85,
+          'Elevasi Tempat': 18,
+          'Azimut Kiblat': 292.25,
+          'Tanggal Pengukuran': '2026-11-19',
+          'Catatan': 'Pengukuran kalibrasi arah kiblat mihrab',
+        },
+      ];
+      const ws = XLSX.utils.json_to_sheet(templateData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Template_Arah_Kiblat');
+      XLSX.writeFile(wb, 'Template_Import_Arah_Kiblat.xlsx');
+    }
+  };
+
+  const handleExcelFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !importMode) return;
+
+    setImportFileName(file.name);
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const rawRows: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+      if (!rawRows || rawRows.length === 0) {
+        triggerToast('error', 'File Kosong', 'Tidak ditemukan baris data pada file Excel.');
+        setImportRowsPreview([]);
+        return;
+      }
+
+      if (importMode === 'masjid') {
+        const mapped = rawRows
+          .map((r) => {
+            const nama = String(
+              r['Nama Masjid'] || r['nama_masjid'] || r['Nama Masjid / Mushalla'] || ''
+            ).trim();
+            if (!nama) return null;
+            return {
+              id_masjid_simas: String(r['ID Masjid'] || r['id_masjid_simas'] || '').trim() || null,
+              id_baru_simas: String(r['ID Baru'] || r['id_baru_simas'] || '').trim() || null,
+              nama_masjid: nama,
+              provinsi: String(r['Provinsi'] || r['provinsi'] || 'Gorontalo').trim(),
+              kabupaten_kota: String(
+                r['Kabupaten/Kota'] || r['Kabupaten'] || r['kabupaten_kota'] || 'Kabupaten Pohuwato'
+              ).trim(),
+              kecamatan: String(r['Kecamatan'] || r['kecamatan'] || '').trim() || null,
+              tipologi: String(r['Tipologi'] || r['tipologi'] || '').trim() || null,
+              status_tanah: String(r['Status Tanah'] || r['status_tanah'] || '').trim() || null,
+              alamat: String(r['Alamat'] || r['alamat'] || '').trim() || null,
+              tahun_berdiri:
+                r['Tahun Berdiri'] !== '' && r['Tahun Berdiri'] !== undefined
+                  ? String(r['Tahun Berdiri']).trim()
+                  : null,
+              luas_tanah:
+                r['Luas Tanah'] !== '' && r['Luas Tanah'] !== undefined
+                  ? String(r['Luas Tanah']).trim()
+                  : null,
+              luas_bangunan:
+                r['Luas Bangunan'] !== '' && r['Luas Bangunan'] !== undefined
+                  ? String(r['Luas Bangunan']).trim()
+                  : null,
+              telepon:
+                r['Telepon'] !== '' && r['Telepon'] !== undefined
+                  ? String(r['Telepon']).trim()
+                  : null,
+              email: r['Email'] ? String(r['Email']).trim() : null,
+              latitude_simas: parseNumberOrNull(r['Latitude'] ?? r['latitude']),
+              longitude_simas: parseNumberOrNull(r['Longitude'] ?? r['longitude']),
+              sumber_data: 'SIMAS',
+            };
+          })
+          .filter(Boolean);
+
+        setImportRowsPreview(mapped);
+      } else if (importMode === 'sdm_masjid') {
+        const mapped = rawRows
+          .map((r) => {
+            const idSimas = String(r['ID Masjid'] || r['id_masjid_simas'] || '').trim();
+            const namaMasjid = String(r['Nama Masjid'] || r['nama_masjid'] || '').trim();
+            const kec = String(r['Kecamatan'] || r['kecamatan'] || '').trim();
+
+            const matched = masjidList.find(
+              (m) =>
+                (idSimas && m.id_masjid_simas === idSimas) ||
+                (namaMasjid &&
+                  m.nama_masjid.toLowerCase() === namaMasjid.toLowerCase() &&
+                  (!kec || (m.kecamatan || '').toLowerCase() === kec.toLowerCase()))
+            );
+
+            if (!matched && !namaMasjid) return null;
+
+            return {
+              masjid_id: matched?.id || null,
+              id_masjid_simas: matched?.id_masjid_simas || idSimas || null,
+              nama_masjid: matched?.nama_masjid || namaMasjid,
+              kecamatan: matched?.kecamatan || kec || null,
+              jumlah_pengurus: parseIntOrZero(r['Jumlah Pengurus'] ?? r['jumlah_pengurus']),
+              ketua_pengurus:
+                String(r['Ketua Pengurus'] || r['ketua_pengurus'] || '').trim() || null,
+              no_hp_ketua:
+                String(r['No HP Ketua'] || r['Nomor HP Ketua'] || r['no_hp_ketua'] || '').trim() ||
+                null,
+              nama_sekretaris:
+                String(r['Nama Sekretaris'] || r['nama_sekretaris'] || '').trim() || null,
+              no_hp_sekretaris:
+                String(
+                  r['No HP Sekretaris'] || r['Nomor HP Sekretaris'] || r['no_hp_sekretaris'] || ''
+                ).trim() || null,
+              daftar_imam: splitListField(r['Imam'] ?? r['daftar_imam']),
+              daftar_khatib: splitListField(r['Khatib'] ?? r['daftar_khatib']),
+              daftar_muazin: splitListField(r['Muazin'] ?? r['daftar_muazin']),
+              jumlah_remaja: parseIntOrZero(
+                r['Jumlah Remaja'] ?? r['Remaja'] ?? r['jumlah_remaja']
+              ),
+              ketua_remaja: String(r['Ketua Remaja'] || r['ketua_remaja'] || '').trim() || null,
+              kategori_jamaah:
+                String(
+                  r['Jumlah Jamaah'] || r['Kategori Jamaah'] || r['kategori_jamaah'] || '50 - 100'
+                ).trim() || '50 - 100',
+              _matched: Boolean(matched),
+            };
+          })
+          .filter(Boolean);
+
+        setImportRowsPreview(mapped);
+      } else if (importMode === 'arah_kiblat') {
+        const mapped = rawRows
+          .map((r) => {
+            const idSimas = String(r['ID Masjid'] || r['id_masjid_simas'] || '').trim();
+            const namaMasjid = String(r['Nama Masjid'] || r['nama_masjid'] || '').trim();
+            const kec = String(r['Kecamatan'] || r['kecamatan'] || '').trim();
+
+            const matched = masjidList.find(
+              (m) =>
+                (idSimas && m.id_masjid_simas === idSimas) ||
+                (namaMasjid &&
+                  m.nama_masjid.toLowerCase() === namaMasjid.toLowerCase() &&
+                  (!kec || (m.kecamatan || '').toLowerCase() === kec.toLowerCase()))
+            );
+
+            if (!matched && !namaMasjid) return null;
+
+            const latVal = parseNumberOrNull(r['Latitude'] ?? r['latitude']);
+            const lngVal = parseNumberOrNull(r['Longitude'] ?? r['longitude']);
+            const azB = parseNumberOrNull(r['Azimut Bangunan'] ?? r['azimut_bangunan']);
+            const azK = parseNumberOrNull(r['Azimut Kiblat'] ?? r['azimut_kiblat']);
+            const elevVal = parseNumberOrNull(r['Elevasi Tempat'] ?? r['elevasi_tempat']);
+            const calc = hitungPenyimpangan(azB, azK);
+
+            const tglRaw = r['Tanggal Pengukuran'] || r['tanggal_pengukuran'] || '';
+            const tglStr = tglRaw
+              ? String(tglRaw).slice(0, 10)
+              : new Date().toISOString().slice(0, 10);
+
+            return {
+              masjid_id: matched?.id || null,
+              id_masjid_simas: matched?.id_masjid_simas || idSimas || null,
+              nama_masjid: matched?.nama_masjid || namaMasjid,
+              kecamatan: matched?.kecamatan || kec || null,
+              latitude: latVal,
+              lintang_utara:
+                String(r['Lintang Utara'] || r['lintang_utara'] || '').trim() || null,
+              longitude: lngVal,
+              bujur_timur: String(r['Bujur Timur'] || r['bujur_timur'] || '').trim() || null,
+              azimut_bangunan: azB,
+              elevasi_tempat: elevVal,
+              azimut_kiblat: azK,
+              penyimpangan: calc.selisih,
+              status_penyimpangan: calc.status,
+              tanggal_pengukuran: tglStr,
+              catatan: String(r['Catatan'] || r['catatan'] || '').trim() || null,
+              _matched: Boolean(matched),
+            };
+          })
+          .filter(Boolean);
+
+        setImportRowsPreview(mapped);
+      }
+    } catch (err: any) {
+      triggerToast('error', 'Gagal Membaca File Excel', err?.message || 'Format file tidak didukung.');
+    }
+  };
+
+  const handleExecuteImport = async () => {
+    if (!importMode || importRowsPreview.length === 0) return;
+    setProcessing(true);
+
+    try {
+      const nowIso = new Date().toISOString();
+
+      if (importMode === 'masjid') {
+        const cleanRows = importRowsPreview.map((item) => ({
+          ...item,
+          updated_at: nowIso,
+        }));
+
+        const withIdSimas = cleanRows.filter((r) => Boolean(r.id_masjid_simas));
+        const withoutIdSimas = cleanRows.filter((r) => !r.id_masjid_simas);
+
+        if (withIdSimas.length > 0) {
+          const { error } = await supabase
+            .from('masjid_mushalla')
+            .upsert(withIdSimas, { onConflict: 'id_masjid_simas' });
+          if (error) throw new Error(error.message);
+        }
+
+        if (withoutIdSimas.length > 0) {
+          const { error } = await supabase.from('masjid_mushalla').insert(withoutIdSimas);
+          if (error) throw new Error(error.message);
+        }
+
+        triggerToast(
+          'success',
+          'Import SIMAS Berhasil',
+          `${cleanRows.length} data masjid/mushalla berhasil diimport ke database.`
+        );
+      } else if (importMode === 'sdm_masjid') {
+        const validRows = importRowsPreview
+          .filter((r) => Boolean(r.masjid_id))
+          .map(({ _matched, ...rest }) => ({
+            ...rest,
+            updated_at: nowIso,
+          }));
+
+        if (validRows.length === 0) {
+          throw new Error(
+            'Tidak ada baris yang cocok dengan data Masjid di database. Pastikan ID Masjid atau Nama Masjid + Kecamatan sesuai data SIMAS.'
+          );
+        }
+
+        const { error } = await supabase
+          .from('masjid_sdm')
+          .upsert(validRows, { onConflict: 'masjid_id' });
+        if (error) throw new Error(error.message);
+
+        triggerToast(
+          'success',
+          'Import SDM Masjid Berhasil',
+          `${validRows.length} data SDM masjid berhasil diimport.`
+        );
+      } else if (importMode === 'arah_kiblat') {
+        const validRows = importRowsPreview
+          .filter((r) => Boolean(r.masjid_id))
+          .map(({ _matched, ...rest }) => ({
+            ...rest,
+            updated_at: nowIso,
+          }));
+
+        if (validRows.length === 0) {
+          throw new Error(
+            'Tidak ada baris yang cocok dengan data Masjid di database. Pastikan ID Masjid atau Nama Masjid + Kecamatan sesuai data SIMAS.'
+          );
+        }
+
+        const { error } = await supabase
+          .from('masjid_arah_kiblat')
+          .upsert(validRows, { onConflict: 'masjid_id' });
+        if (error) throw new Error(error.message);
+
+        triggerToast(
+          'success',
+          'Import Arah Kiblat Berhasil',
+          `${validRows.length} data kalibrasi arah kiblat berhasil diimport.`
+        );
+      }
+
+      setImportMode(null);
+      setImportRowsPreview([]);
+      setImportFileName('');
+      await loadAllData();
+    } catch (err: any) {
+      triggerToast('error', 'Import Gagal', err?.message || 'Terjadi kesalahan saat import.');
+    } finally {
+      setProcessing(false);
+    }
   };
 
   return (
@@ -573,77 +1263,152 @@ export default function KebimasislamanPage() {
           )}
 
           <div className="max-w-7xl mx-auto">
-            {/* HEADER HALAMAN SESUAI SUB-MENU AKTIF */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            {/* HEADER HALAMAN (TANPA TAB HORIZONTAL DI ATAS) */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
               <div>
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 mb-1.5">
-                  <span>📖 Data Kebimasislaman</span>
+                  <span>Data Kebimasislaman • Masjid & Mushalla</span>
                 </div>
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
-                  <span>{currentTabConfig.icon}</span>
-                  <span>{currentTabConfig.label}</span>
+                  <span>{activeSubMenuMeta.icon}</span>
+                  <span>{activeSubMenuMeta.title}</span>
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-600 mt-1">
-                  {currentTabConfig.description}
+                  {activeSubMenuMeta.subtitle}
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={openAddModal}
-                disabled={tableMissing}
-                className="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition shadow-md shadow-emerald-600/20 text-center"
-              >
-                + Tambah {currentTabConfig.shortLabel}
-              </button>
+              {/* AKSI CEPAT SESUAI SUB-SUBMENU AKTIF */}
+              <div className="flex flex-wrap items-center gap-2">
+                {activeSubMenu === 'masjid' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => openImportModal('masjid')}
+                      className="px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition shadow-xs"
+                    >
+                      📥 Import Excel SIMAS
+                    </button>
+                    <button
+                      type="button"
+                      onClick={openAddMasjid}
+                      className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-md shadow-emerald-600/20"
+                    >
+                      + Tambah Masjid/Mushalla
+                    </button>
+                  </>
+                )}
+
+                {activeSubMenu === 'sdm_masjid' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => downloadExcelTemplate('sdm_masjid')}
+                      className="px-3.5 py-2.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-xl text-xs font-bold transition"
+                    >
+                      📄 Template Excel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openImportModal('sdm_masjid')}
+                      className="px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition"
+                    >
+                      📥 Import Excel SDM
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openSdmForm()}
+                      className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-md shadow-emerald-600/20"
+                    >
+                      + Input / Edit SDM Masjid
+                    </button>
+                  </>
+                )}
+
+                {activeSubMenu === 'arah_kiblat' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => downloadExcelTemplate('arah_kiblat')}
+                      className="px-3.5 py-2.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-xl text-xs font-bold transition"
+                    >
+                      📄 Template Excel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openImportModal('arah_kiblat')}
+                      className="px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition"
+                    >
+                      📥 Import Excel Kiblat
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openKiblatForm()}
+                      className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-md shadow-emerald-600/20"
+                    >
+                      + Input Kalibrasi Kiblat
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
 
-            {/* BAR SUB-MENU / KATEGORI KEBIMASISLAMAN */}
-            <div className="flex items-center gap-2 border-b border-gray-200 mb-6 overflow-x-auto pb-0.5">
-              {visibleTabs.map((tab) => {
-                const isActive = activeTab === tab.key;
+            {/* PILL NAVIGASI RINGKAS ANTAR SUB-SUBMENU (NYAMAN DI HP & DESKTOP) */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-5">
+              {SUBMENU_ITEMS.map((item) => {
+                const active = activeSubMenu === item.key;
                 return (
                   <button
-                    key={tab.key}
+                    key={item.key}
                     type="button"
-                    onClick={() => selectKategori(tab.key, true)}
-                    className={`pb-3 px-3 sm:px-4 text-xs sm:text-sm font-bold transition border-b-2 whitespace-nowrap flex items-center gap-1.5 ${
-                      isActive
-                        ? 'border-emerald-600 text-emerald-700'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                    onClick={() => navigateSubMenu(item.key)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition border ${
+                      active
+                        ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
+                        : 'bg-white text-gray-700 border-gray-200 hover:bg-emerald-50 hover:text-emerald-800'
                     }`}
                   >
-                    <span>{tab.icon}</span>
-                    <span>{tab.label}</span>
-                    <span className="px-2 py-0.5 text-[10px] rounded-full bg-gray-100 text-gray-700 font-bold">
-                      {tabCounts[tab.key] || 0}
-                    </span>
+                    {item.icon} {item.title}
                   </button>
                 );
               })}
             </div>
 
-            {tableMissing ? (
-              <div className="bg-amber-50 border border-amber-300 rounded-2xl p-6 text-xs sm:text-sm text-amber-950 space-y-2">
-                <div className="font-bold text-sm">Tabel `kebimasislaman_data` belum tersedia di Supabase</div>
-                <p className="text-xs text-amber-900 leading-relaxed">
-                  Buat tabel <code className="font-mono font-bold">kebimasislaman_data</code> pada database Supabase agar penyimpanan modul Kebimasislaman aktif sepenuhnya.
-                </p>
-              </div>
-            ) : (
+            {/* ==================== SUB-MENU 1: DATA MASJID & MUSHALLA (SIMAS) ==================== */}
+            {activeSubMenu === 'masjid' && (
               <>
-                {/* PANEL PENCARIAN & FILTER */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-6 space-y-3">
+                {/* RINGKASAN METRIK */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                  <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-2xs">
+                    <div className="text-[11px] font-semibold text-gray-500">Total Masjid Terdaftar</div>
+                    <div className="text-xl font-bold text-gray-900 mt-1">{masjidList.length}</div>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-2xs">
+                    <div className="text-[11px] font-semibold text-gray-500">Hasil Filter Saat Ini</div>
+                    <div className="text-xl font-bold text-emerald-700 mt-1">{filteredMasjid.length}</div>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-2xs">
+                    <div className="text-[11px] font-semibold text-gray-500">Data SDM Tercatat</div>
+                    <div className="text-xl font-bold text-gray-900 mt-1">{Object.keys(sdmMap).length}</div>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-2xs">
+                    <div className="text-[11px] font-semibold text-gray-500">Kalibrasi Kiblat Tercatat</div>
+                    <div className="text-xl font-bold text-gray-900 mt-1">{Object.keys(kiblatMap).length}</div>
+                  </div>
+                </div>
+
+                {/* FILTER KECAMATAN & TIPOLOGI */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
-                    <div className="relative lg:col-span-5">
+                    <div className="relative lg:col-span-6">
                       <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">
                         🔍
                       </span>
                       <input
                         type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder={`Cari ${currentTabConfig.shortLabel.toLowerCase()}, penanggung jawab, kecamatan, atau no. tiket PTSP...`}
+                        value={searchMasjid}
+                        onChange={(e) => setSearchMasjid(e.target.value)}
+                        placeholder="Cari nama masjid/mushalla, ID SIMAS, kecamatan, atau alamat..."
                         className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-300 rounded-xl text-xs text-gray-800 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                       />
                     </div>
@@ -651,179 +1416,311 @@ export default function KebimasislamanPage() {
                     <div className="lg:col-span-3">
                       <select
                         aria-label="Filter Kecamatan"
-                        value={selectedKecamatan}
-                        onChange={(e) => setSelectedKecamatan(e.target.value)}
+                        value={filterKecamatan}
+                        onChange={(e) => setFilterKecamatan(e.target.value)}
                         className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                       >
                         <option value="ALL">📍 Semua Kecamatan</option>
-                        {kecamatanFilterOptions.map((kecName) => (
-                          <option key={kecName} value={kecName}>
-                            {kecName}
+                        {kecamatanOptions.map((kec) => (
+                          <option key={kec} value={kec}>
+                            {kec}
                           </option>
                         ))}
                       </select>
                     </div>
 
-                    <div className="lg:col-span-2">
+                    <div className="lg:col-span-3">
                       <select
-                        aria-label="Filter Status"
-                        value={selectedStatus}
-                        onChange={(e) => setSelectedStatus(e.target.value)}
+                        aria-label="Filter Tipologi"
+                        value={filterTipologi}
+                        onChange={(e) => setFilterTipologi(e.target.value)}
                         className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                       >
-                        <option value="ALL">🏷️ Semua Status</option>
-                        {currentTabConfig.statusOptions.map((st) => (
-                          <option key={st} value={st}>
-                            {st}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="lg:col-span-2">
-                      <select
-                        aria-label="Filter Bulan"
-                        value={selectedMonth}
-                        onChange={(e) => setSelectedMonth(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                      >
-                        <option value="ALL">📅 Semua Bulan</option>
-                        {monthFilterOptions.map((mKey) => (
-                          <option key={mKey} value={mKey}>
-                            {formatMonthLabel(mKey)}
+                        <option value="ALL">🏛️ Semua Tipologi</option>
+                        {tipologiOptions.map((tip) => (
+                          <option key={tip} value={tip}>
+                            {tip}
                           </option>
                         ))}
                       </select>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-100 text-xs">
-                    <div className="flex items-center gap-2">
-                      {hasActiveFilters && (
-                        <button
-                          type="button"
-                          onClick={resetFilters}
-                          className="text-xs font-semibold text-emerald-700 hover:underline"
-                        >
-                          Reset Filter
-                        </button>
-                      )}
+                  {(searchMasjid || filterKecamatan !== 'ALL' || filterTipologi !== 'ALL') && (
+                    <div className="flex items-center justify-between pt-3 mt-3 border-t border-gray-100 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchMasjid('');
+                          setFilterKecamatan('ALL');
+                          setFilterTipologi('ALL');
+                        }}
+                        className="font-bold text-emerald-700 hover:underline"
+                      >
+                        Reset Filter
+                      </button>
+                      <span className="text-gray-600">
+                        Menampilkan <strong className="text-emerald-700">{filteredMasjid.length}</strong> masjid
+                      </span>
                     </div>
-                    <div className="font-semibold text-gray-600">
-                      Ditampilkan: <strong className="text-emerald-700">{filteredRecords.length} Data</strong>
+                  )}
+                </div>
+
+                {/* LIST DATA MASJID (KARTU HP & TABEL DESKTOP) */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                  {loading ? (
+                    <div className="p-10 text-center text-sm text-gray-500">Memuat data masjid SIMAS...</div>
+                  ) : filteredMasjid.length === 0 ? (
+                    <div className="p-10 text-center text-sm text-gray-500 space-y-2">
+                      <div>Belum ada data masjid yang tampil.</div>
+                      <button
+                        type="button"
+                        onClick={() => openImportModal('masjid')}
+                        className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition"
+                      >
+                        📥 Import File Excel SIMAS Sekarang
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      {/* KARTU KHUSUS HP (< md) */}
+                      <div className="md:hidden divide-y divide-gray-100">
+                        {filteredMasjid.map((m, idx) => (
+                          <div key={m.id} className="p-4 space-y-2.5 bg-white">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-[10px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md">
+                                    #{idx + 1}
+                                  </span>
+                                  {m.kecamatan && (
+                                    <span className="text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md">
+                                      {m.kecamatan}
+                                    </span>
+                                  )}
+                                  {m.tipologi && (
+                                    <span className="text-[10px] font-semibold bg-amber-50 text-amber-900 border border-amber-200 px-2 py-0.5 rounded-md">
+                                      {m.tipologi}
+                                    </span>
+                                  )}
+                                </div>
+                                <h3 className="font-bold text-sm text-gray-900 mt-1.5 break-words">
+                                  {m.nama_masjid}
+                                </h3>
+                                {m.id_masjid_simas && (
+                                  <p className="font-mono text-[10px] text-gray-500 mt-0.5">
+                                    ID: {m.id_masjid_simas}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 text-xs text-gray-600 space-y-1">
+                              {m.alamat && <div className="break-words">📍 {m.alamat}</div>}
+                              <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray-700 pt-0.5">
+                                {m.status_tanah && <span>Tanah: <strong>{m.status_tanah}</strong></span>}
+                                {m.tahun_berdiri && <span>Thn: <strong>{m.tahun_berdiri}</strong></span>}
+                                {m.telepon && <span>📞 {m.telepon}</span>}
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-1.5 pt-1">
+                              <button
+                                type="button"
+                                onClick={() => openSdmForm(m)}
+                                className="py-2 px-2 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold"
+                              >
+                                👥 SDM
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openKiblatForm(m)}
+                                className="py-2 px-2 rounded-xl bg-teal-50 text-teal-800 border border-teal-200 text-[11px] font-bold"
+                              >
+                                🧭 Kiblat
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openEditMasjid(m)}
+                                className="py-2 px-2 rounded-xl bg-gray-100 text-gray-800 border border-gray-200 text-[11px] font-bold"
+                              >
+                                Edit
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* TABEL DESKTOP (>= md) */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200 text-sm">
+                          <thead className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider text-left">
+                            <tr>
+                              <th className="px-5 py-3.5 font-semibold">No</th>
+                              <th className="px-5 py-3.5 font-semibold">Nama Masjid & ID SIMAS</th>
+                              <th className="px-5 py-3.5 font-semibold">Kecamatan & Tipologi</th>
+                              <th className="px-5 py-3.5 font-semibold">Alamat & Pertanahan</th>
+                              <th className="px-5 py-3.5 font-semibold text-right">Aksi</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200 bg-white">
+                            {filteredMasjid.map((m, idx) => (
+                              <tr key={m.id} className="hover:bg-gray-50 transition">
+                                <td className="px-5 py-3.5 text-xs text-gray-500">{idx + 1}</td>
+                                <td className="px-5 py-3.5">
+                                  <div className="font-bold text-gray-900">{m.nama_masjid}</div>
+                                  <div className="font-mono text-[11px] text-gray-500">
+                                    {m.id_masjid_simas || '-'}
+                                  </div>
+                                </td>
+                                <td className="px-5 py-3.5 text-xs">
+                                  <div className="font-bold text-emerald-800">{m.kecamatan || '-'}</div>
+                                  <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    {m.tipologi || 'Belum Diisi'}
+                                  </span>
+                                </td>
+                                <td className="px-5 py-3.5 text-xs text-gray-700 max-w-md">
+                                  <div className="line-clamp-2 text-gray-800">{m.alamat || '-'}</div>
+                                  <div className="text-[11px] text-gray-500 mt-0.5">
+                                    {m.status_tanah ? `Status: ${m.status_tanah}` : ''}
+                                    {m.tahun_berdiri ? ` • Berdiri: ${m.tahun_berdiri}` : ''}
+                                    {m.telepon ? ` • Telp: ${m.telepon}` : ''}
+                                  </div>
+                                </td>
+                                <td className="px-5 py-3.5 text-right whitespace-nowrap space-x-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => openSdmForm(m)}
+                                    className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold"
+                                  >
+                                    SDM
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => openKiblatForm(m)}
+                                    className="px-2.5 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 text-xs font-semibold"
+                                  >
+                                    Arah Kiblat
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditMasjid(m)}
+                                    className="px-2.5 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-semibold"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeleteTarget({ id: m.id, nama: m.nama_masjid })}
+                                    className="px-2.5 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-semibold"
+                                  >
+                                    Hapus
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* ==================== SUB-MENU 2: SDM MASJID ==================== */}
+            {activeSubMenu === 'sdm_masjid' && (
+              <>
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                    <div className="relative sm:col-span-8">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">
+                        🔍
+                      </span>
+                      <input
+                        type="text"
+                        value={searchSub}
+                        onChange={(e) => setSearchSub(e.target.value)}
+                        placeholder="Cari nama masjid, ketua pengurus, sekretaris, atau kecamatan..."
+                        className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-300 rounded-xl text-xs text-gray-800 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      />
+                    </div>
+                    <div className="sm:col-span-4">
+                      <select
+                        aria-label="Filter Kecamatan SDM"
+                        value={filterSubKecamatan}
+                        onChange={(e) => setFilterSubKecamatan(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      >
+                        <option value="ALL">📍 Semua Kecamatan</option>
+                        {kecamatanOptions.map((kec) => (
+                          <option key={kec} value={kec}>
+                            {kec}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </div>
 
-                {/* DAFTAR DATA: CARD VIEW DI HP (< md) & TABEL DI DESKTOP (>= md) */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                   {loading ? (
-                    <div className="px-6 py-12 text-center text-gray-500 text-sm">
-                      Memuat data {currentTabConfig.label}...
-                    </div>
-                  ) : filteredRecords.length === 0 ? (
-                    <div className="px-6 py-12 text-center text-gray-500 text-sm space-y-2">
-                      <div>
-                        {hasActiveFilters
-                          ? 'Tidak ada data yang cocok dengan filter yang dipilih.'
-                          : `Belum ada data pada kategori ${currentTabConfig.label}.`}
-                      </div>
-                      {hasActiveFilters && (
-                        <button
-                          type="button"
-                          onClick={resetFilters}
-                          className="px-4 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold hover:bg-emerald-100 transition"
-                        >
-                          Tampilkan Semua
-                        </button>
-                      )}
+                    <div className="p-10 text-center text-sm text-gray-500">Memuat data SDM masjid...</div>
+                  ) : filteredSubMasjid.length === 0 ? (
+                    <div className="p-10 text-center text-sm text-gray-500">
+                      Belum ada data masjid untuk ditampilkan. Import data SIMAS terlebih dahulu.
                     </div>
                   ) : (
                     <>
-                      {/* CARD VIEW KHUSUS HP (< md) */}
+                      {/* KARTU HP (< md) */}
                       <div className="md:hidden divide-y divide-gray-100">
-                        {filteredRecords.map((item, idx) => {
-                          const extra =
-                            item.data_tambahan && typeof item.data_tambahan === 'object'
-                              ? item.data_tambahan
-                              : {};
-                          const statusLabel = item.status_data || currentTabConfig.statusOptions[0] || 'Terverifikasi';
-
+                        {filteredSubMasjid.map((m) => {
+                          const sdm = getSdmForMasjid(m);
                           return (
-                            <div key={item.id || idx} className="p-4 space-y-3 bg-white">
+                            <div key={m.id} className="p-4 space-y-2.5 bg-white">
                               <div className="flex items-start justify-between gap-2">
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="text-[11px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
-                                      #{idx + 1}
-                                    </span>
-                                    {item.kecamatan && (
-                                      <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-                                        {item.kecamatan}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <h3 className="font-bold text-sm text-gray-900 mt-1.5 break-words">
-                                    {item.nama_objek}
-                                  </h3>
+                                <div>
+                                  <div className="text-[10px] font-bold text-emerald-800">{m.kecamatan || '-'}</div>
+                                  <h3 className="font-bold text-sm text-gray-900">{m.nama_masjid}</h3>
                                 </div>
-                                <span
-                                  className={`shrink-0 px-2.5 py-1 text-[11px] font-bold rounded-full border ${getStatusBadgeClass(
-                                    statusLabel
-                                  )}`}
-                                >
-                                  {statusLabel}
+                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                  Jamaah: {sdm?.kategori_jamaah || '-'}
                                 </span>
                               </div>
-
-                              <div className="bg-gray-50/80 rounded-xl p-3 border border-gray-100 space-y-1 text-xs text-gray-600">
-                                {item.penanggung_jawab && (
-                                  <div>
-                                    <span className="font-semibold text-gray-500">{currentTabConfig.pjLabel}:</span>{' '}
-                                    <span className="font-medium text-gray-800 break-words">{item.penanggung_jawab}</span>
-                                  </div>
-                                )}
-                                {extra.extra1 && (
-                                  <div>
-                                    <span className="font-semibold text-gray-500">{currentTabConfig.extra1Label}:</span>{' '}
-                                    <span className="text-gray-800 break-words">{extra.extra1}</span>
-                                  </div>
-                                )}
-                                {extra.extra2 && (
-                                  <div>
-                                    <span className="font-semibold text-gray-500">{currentTabConfig.extra2Label}:</span>{' '}
-                                    <span className="text-gray-800 break-words">{extra.extra2}</span>
-                                  </div>
-                                )}
-                                {item.alamat_lokasi && (
-                                  <div className="text-gray-500 break-words">📍 {item.alamat_lokasi}</div>
-                                )}
-                                {item.no_hp && (
-                                  <div className="text-emerald-700 font-medium">📞 {item.no_hp}</div>
-                                )}
-                                {item.nomor_tiket_ptsp && (
-                                  <div className="font-mono text-[11px] text-emerald-800 pt-0.5">
-                                    Tiket PTSP: {item.nomor_tiket_ptsp}
-                                  </div>
-                                )}
+                              <div className="bg-gray-50 rounded-xl p-3 text-xs text-gray-700 space-y-1">
+                                <div>
+                                  <strong>Ketua:</strong> {sdm?.ketua_pengurus || '-'}{' '}
+                                  {sdm?.no_hp_ketua ? `(${sdm.no_hp_ketua})` : ''}
+                                </div>
+                                <div>
+                                  <strong>Sekretaris:</strong> {sdm?.nama_sekretaris || '-'}{' '}
+                                  {sdm?.no_hp_sekretaris ? `(${sdm.no_hp_sekretaris})` : ''}
+                                </div>
+                                <div>
+                                  <strong>Pengurus:</strong> {sdm?.jumlah_pengurus ?? 0} •{' '}
+                                  <strong>Remaja:</strong> {sdm?.jumlah_remaja ?? 0}{' '}
+                                  {sdm?.ketua_remaja ? `(${sdm.ketua_remaja})` : ''}
+                                </div>
+                                <div>
+                                  <strong>Imam:</strong>{' '}
+                                  {sdm?.daftar_imam?.length ? sdm.daftar_imam.join(', ') : '-'}
+                                </div>
+                                <div>
+                                  <strong>Khatib:</strong>{' '}
+                                  {sdm?.daftar_khatib?.length ? sdm.daftar_khatib.join(', ') : '-'}
+                                </div>
+                                <div>
+                                  <strong>Muazin:</strong>{' '}
+                                  {sdm?.daftar_muazin?.length ? sdm.daftar_muazin.join(', ') : '-'}
+                                </div>
                               </div>
-
-                              <div className="flex items-center gap-2 pt-0.5">
-                                <button
-                                  type="button"
-                                  onClick={() => openEditModal(item)}
-                                  className="flex-1 py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold transition text-center"
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => confirmDelete(item)}
-                                  className="flex-1 py-2 px-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold transition text-center"
-                                >
-                                  Hapus
-                                </button>
-                              </div>
+                              <button
+                                type="button"
+                                onClick={() => openSdmForm(m)}
+                                className="w-full py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold"
+                              >
+                                {sdm ? 'Edit Data SDM' : '+ Lengkapi Data SDM'}
+                              </button>
                             </div>
                           );
                         })}
@@ -834,73 +1731,302 @@ export default function KebimasislamanPage() {
                         <table className="min-w-full divide-y divide-gray-200 text-sm">
                           <thead className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider text-left">
                             <tr>
-                              <th className="px-6 py-3.5 font-semibold">No</th>
-                              <th className="px-6 py-3.5 font-semibold">{currentTabConfig.namaLabel}</th>
-                              <th className="px-6 py-3.5 font-semibold">Wilayah & Lokasi</th>
-                              <th className="px-6 py-3.5 font-semibold">Rincian & Penanggung Jawab</th>
-                              <th className="px-6 py-3.5 font-semibold">Status</th>
-                              <th className="px-6 py-3.5 font-semibold text-right">Aksi</th>
+                              <th className="px-5 py-3.5 font-semibold">Masjid & Kecamatan</th>
+                              <th className="px-5 py-3.5 font-semibold">Ketua & Sekretaris</th>
+                              <th className="px-5 py-3.5 font-semibold">Imam, Khatib & Muazin</th>
+                              <th className="px-5 py-3.5 font-semibold">Pengurus, Remaja & Jamaah</th>
+                              <th className="px-5 py-3.5 font-semibold text-right">Aksi</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-200 bg-white">
-                            {filteredRecords.map((item, idx) => {
-                              const extra =
-                                item.data_tambahan && typeof item.data_tambahan === 'object'
-                                  ? item.data_tambahan
-                                  : {};
-                              const statusLabel =
-                                item.status_data || currentTabConfig.statusOptions[0] || 'Terverifikasi';
-
+                            {filteredSubMasjid.map((m) => {
+                              const sdm = getSdmForMasjid(m);
                               return (
-                                <tr key={item.id || idx} className="hover:bg-gray-50 transition">
-                                  <td className="px-6 py-4 text-gray-500 text-xs">{idx + 1}</td>
-                                  <td className="px-6 py-4">
-                                    <div className="font-bold text-gray-900">{item.nama_objek}</div>
-                                    {extra.extra1 && (
-                                      <div className="text-xs text-emerald-800 font-medium mt-0.5">
-                                        {extra.extra1}
-                                      </div>
-                                    )}
-                                    {item.nomor_tiket_ptsp && (
-                                      <div className="font-mono text-[11px] text-gray-500 mt-0.5">
-                                        PTSP: {item.nomor_tiket_ptsp}
-                                      </div>
-                                    )}
+                                <tr key={m.id} className="hover:bg-gray-50 transition">
+                                  <td className="px-5 py-3.5">
+                                    <div className="font-bold text-gray-900">{m.nama_masjid}</div>
+                                    <div className="text-xs text-emerald-700 font-medium">{m.kecamatan || '-'}</div>
                                   </td>
-                                  <td className="px-6 py-4 text-xs text-gray-700">
-                                    <div className="font-semibold text-gray-900">{item.kecamatan || '-'}</div>
-                                    <div className="text-gray-500 mt-0.5">{item.alamat_lokasi || '-'}</div>
-                                  </td>
-                                  <td className="px-6 py-4 text-xs text-gray-700 space-y-0.5">
-                                    <div className="font-medium text-gray-900">
-                                      {item.penanggung_jawab || '-'}
+                                  <td className="px-5 py-3.5 text-xs text-gray-700 space-y-0.5">
+                                    <div>
+                                      <span className="font-semibold text-gray-900">Ketua:</span>{' '}
+                                      {sdm?.ketua_pengurus || '-'}{' '}
+                                      {sdm?.no_hp_ketua ? `• ${sdm.no_hp_ketua}` : ''}
                                     </div>
-                                    {item.no_hp && <div className="text-emerald-700">📞 {item.no_hp}</div>}
-                                    {extra.extra2 && <div className="text-gray-500">{extra.extra2}</div>}
+                                    <div>
+                                      <span className="font-semibold text-gray-900">Sekretaris:</span>{' '}
+                                      {sdm?.nama_sekretaris || '-'}{' '}
+                                      {sdm?.no_hp_sekretaris ? `• ${sdm.no_hp_sekretaris}` : ''}
+                                    </div>
                                   </td>
-                                  <td className="px-6 py-4">
-                                    <span
-                                      className={`px-3 py-1 text-xs font-bold rounded-full border ${getStatusBadgeClass(
-                                        statusLabel
-                                      )}`}
-                                    >
-                                      {statusLabel}
-                                    </span>
+                                  <td className="px-5 py-3.5 text-xs text-gray-700 space-y-0.5 max-w-xs">
+                                    <div className="truncate">
+                                      <strong>Imam:</strong>{' '}
+                                      {sdm?.daftar_imam?.length ? sdm.daftar_imam.join(', ') : '-'}
+                                    </div>
+                                    <div className="truncate">
+                                      <strong>Khatib:</strong>{' '}
+                                      {sdm?.daftar_khatib?.length ? sdm.daftar_khatib.join(', ') : '-'}
+                                    </div>
+                                    <div className="truncate">
+                                      <strong>Muazin:</strong>{' '}
+                                      {sdm?.daftar_muazin?.length ? sdm.daftar_muazin.join(', ') : '-'}
+                                    </div>
                                   </td>
-                                  <td className="px-6 py-4 text-right whitespace-nowrap space-x-2">
+                                  <td className="px-5 py-3.5 text-xs text-gray-700 space-y-0.5">
+                                    <div>Pengurus: <strong>{sdm?.jumlah_pengurus ?? 0}</strong></div>
+                                    <div>
+                                      Remaja: <strong>{sdm?.jumlah_remaja ?? 0}</strong>{' '}
+                                      {sdm?.ketua_remaja ? `(${sdm.ketua_remaja})` : ''}
+                                    </div>
+                                    <div>
+                                      Jamaah:{' '}
+                                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                        {sdm?.kategori_jamaah || '-'}
+                                      </span>
+                                    </div>
+                                  </td>
+                                  <td className="px-5 py-3.5 text-right whitespace-nowrap">
                                     <button
                                       type="button"
-                                      onClick={() => openEditModal(item)}
-                                      className="text-emerald-700 hover:text-emerald-900 text-xs font-semibold bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 transition"
+                                      onClick={() => openSdmForm(m)}
+                                      className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold"
                                     >
-                                      Edit
+                                      {sdm ? 'Edit SDM' : 'Input SDM'}
                                     </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* ==================== SUB-MENU 3: KALIBRASI ARAH KIBLAT ==================== */}
+            {activeSubMenu === 'arah_kiblat' && (
+              <>
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                    <div className="relative sm:col-span-6">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">
+                        🔍
+                      </span>
+                      <input
+                        type="text"
+                        value={searchSub}
+                        onChange={(e) => setSearchSub(e.target.value)}
+                        placeholder="Cari nama masjid atau kecamatan..."
+                        className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-300 rounded-xl text-xs text-gray-800 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      />
+                    </div>
+                    <div className="sm:col-span-3">
+                      <select
+                        aria-label="Filter Kecamatan Kiblat"
+                        value={filterSubKecamatan}
+                        onChange={(e) => setFilterSubKecamatan(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      >
+                        <option value="ALL">📍 Semua Kecamatan</option>
+                        {kecamatanOptions.map((kec) => (
+                          <option key={kec} value={kec}>
+                            {kec}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="sm:col-span-3">
+                      <select
+                        aria-label="Filter Status Kalibrasi"
+                        value={filterKiblatStatus}
+                        onChange={(e) => setFilterKiblatStatus(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      >
+                        <option value="ALL">🧭 Semua Status Kalibrasi</option>
+                        <option value="SUDAH">Sudah Dikalibrasi</option>
+                        <option value="BELUM">Belum Dikalibrasi</option>
+                        <option value="Sesuai / Presisi">Sesuai / Presisi</option>
+                        <option value="Perlu Koreksi">Perlu Koreksi</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                  {loading ? (
+                    <div className="p-10 text-center text-sm text-gray-500">Memuat data arah kiblat...</div>
+                  ) : filteredSubMasjid.length === 0 ? (
+                    <div className="p-10 text-center text-sm text-gray-500">
+                      Belum ada data masjid untuk ditampilkan.
+                    </div>
+                  ) : (
+                    <>
+                      {/* KARTU HP (< md) */}
+                      <div className="md:hidden divide-y divide-gray-100">
+                        {filteredSubMasjid.map((m) => {
+                          const k = getKiblatForMasjid(m);
+                          const penyimpanganText = formatPenyimpangan(k?.penyimpangan ?? null);
+                          return (
+                            <div key={m.id} className="p-4 space-y-2.5 bg-white">
+                              <div className="flex items-start justify-between gap-2">
+                                <div>
+                                  <div className="text-[10px] font-bold text-emerald-800">{m.kecamatan || '-'}</div>
+                                  <h3 className="font-bold text-sm text-gray-900">{m.nama_masjid}</h3>
+                                </div>
+                                <span
+                                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                                    k?.azimut_kiblat !== null && k?.azimut_kiblat !== undefined
+                                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                      : 'bg-gray-100 text-gray-600 border-gray-200'
+                                  }`}
+                                >
+                                  {k?.azimut_kiblat !== null && k?.azimut_kiblat !== undefined
+                                    ? `Penyimpangan: ${penyimpanganText}`
+                                    : 'Belum Diukur'}
+                                </span>
+                              </div>
+
+                              <div className="bg-gray-50 rounded-xl p-3 text-xs text-gray-700 space-y-1">
+                                <div>
+                                  <strong>Azimut Bangunan:</strong>{' '}
+                                  {k?.azimut_bangunan !== null && k?.azimut_bangunan !== undefined
+                                    ? `${k.azimut_bangunan}°`
+                                    : '-'}{' '}
+                                  • <strong>Azimut Kiblat:</strong>{' '}
+                                  {k?.azimut_kiblat !== null && k?.azimut_kiblat !== undefined
+                                    ? `${k.azimut_kiblat}°`
+                                    : '-'}
+                                </div>
+                                <div>
+                                  <strong>Elevasi:</strong>{' '}
+                                  {k?.elevasi_tempat !== null && k?.elevasi_tempat !== undefined
+                                    ? `${k.elevasi_tempat} m`
+                                    : '-'}{' '}
+                                  • <strong>Tgl Ukur:</strong> {k?.tanggal_pengukuran || '-'}
+                                </div>
+                                {k?.foto_kalibrasi_url && (
+                                  <div className="pt-1">
+                                    <img
+                                      src={k.foto_kalibrasi_url}
+                                      alt={`Kalibrasi ${m.nama_masjid}`}
+                                      className="w-full h-36 object-cover rounded-lg border border-gray-200"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => openKiblatForm(m)}
+                                className="w-full py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold"
+                              >
+                                {k ? 'Edit Kalibrasi Kiblat' : '+ Input Kalibrasi Kiblat'}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* TABEL DESKTOP (>= md) */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200 text-sm">
+                          <thead className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider text-left">
+                            <tr>
+                              <th className="px-5 py-3.5 font-semibold">Masjid & Kecamatan</th>
+                              <th className="px-5 py-3.5 font-semibold">Koordinat & Elevasi</th>
+                              <th className="px-5 py-3.5 font-semibold">Azimut & Penyimpangan</th>
+                              <th className="px-5 py-3.5 font-semibold">Tanggal & Foto</th>
+                              <th className="px-5 py-3.5 font-semibold text-right">Aksi</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200 bg-white">
+                            {filteredSubMasjid.map((m) => {
+                              const k = getKiblatForMasjid(m);
+                              const penyimpanganText = formatPenyimpangan(k?.penyimpangan ?? null);
+                              return (
+                                <tr key={m.id} className="hover:bg-gray-50 transition">
+                                  <td className="px-5 py-3.5">
+                                    <div className="font-bold text-gray-900">{m.nama_masjid}</div>
+                                    <div className="text-xs text-emerald-700 font-medium">{m.kecamatan || '-'}</div>
+                                  </td>
+                                  <td className="px-5 py-3.5 text-xs text-gray-700 space-y-0.5">
+                                    <div>
+                                      Lat: <strong>{k?.latitude ?? m.latitude_simas ?? '-'}</strong> • Lng:{' '}
+                                      <strong>{k?.longitude ?? m.longitude_simas ?? '-'}</strong>
+                                    </div>
+                                    <div>
+                                      LU: {k?.lintang_utara || '-'} • BT: {k?.bujur_timur || '-'}
+                                    </div>
+                                    <div>
+                                      Elevasi:{' '}
+                                      <strong>
+                                        {k?.elevasi_tempat !== null && k?.elevasi_tempat !== undefined
+                                          ? `${k.elevasi_tempat} m`
+                                          : '-'}
+                                      </strong>
+                                    </div>
+                                  </td>
+                                  <td className="px-5 py-3.5 text-xs text-gray-700 space-y-0.5">
+                                    <div>
+                                      Az. Bangunan:{' '}
+                                      <strong>
+                                        {k?.azimut_bangunan !== null && k?.azimut_bangunan !== undefined
+                                          ? `${k.azimut_bangunan}°`
+                                          : '-'}
+                                      </strong>
+                                    </div>
+                                    <div>
+                                      Az. Kiblat:{' '}
+                                      <strong>
+                                        {k?.azimut_kiblat !== null && k?.azimut_kiblat !== undefined
+                                          ? `${k.azimut_kiblat}°`
+                                          : '-'}
+                                      </strong>
+                                    </div>
+                                    <div>
+                                      Penyimpangan:{' '}
+                                      <span
+                                        className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${
+                                          k?.penyimpangan !== null && k?.penyimpangan !== undefined
+                                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                            : 'bg-gray-100 text-gray-500 border-gray-200'
+                                        }`}
+                                      >
+                                        {penyimpanganText}
+                                      </span>
+                                    </div>
+                                  </td>
+                                  <td className="px-5 py-3.5 text-xs text-gray-700">
+                                    <div>{k?.tanggal_pengukuran || '-'}</div>
+                                    {k?.foto_kalibrasi_url ? (
+                                      <a
+                                        href={k.foto_kalibrasi_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-1.5 mt-1 text-emerald-700 font-semibold hover:underline"
+                                      >
+                                        <img
+                                          src={k.foto_kalibrasi_url}
+                                          alt="Foto Kalibrasi"
+                                          className="w-10 h-10 object-cover rounded-lg border border-gray-200"
+                                        />
+                                        <span>Lihat Foto</span>
+                                      </a>
+                                    ) : (
+                                      <div className="text-[11px] text-gray-400 mt-0.5">Tanpa foto</div>
+                                    )}
+                                  </td>
+                                  <td className="px-5 py-3.5 text-right whitespace-nowrap">
                                     <button
                                       type="button"
-                                      onClick={() => confirmDelete(item)}
-                                      className="text-red-600 hover:text-red-800 text-xs font-semibold bg-red-50 px-3 py-1.5 rounded-xl border border-red-200 transition"
+                                      onClick={() => openKiblatForm(m)}
+                                      className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold"
                                     >
-                                      Hapus
+                                      {k ? 'Edit Kalibrasi' : 'Input Kalibrasi'}
                                     </button>
                                   </td>
                                 </tr>
@@ -916,29 +2042,56 @@ export default function KebimasislamanPage() {
             )}
           </div>
 
-          {/* MODAL TAMBAH / EDIT DATA KEBIMASISLAMAN */}
-          {showModal && (
+          {/* ==================== MODAL TAMBAH / EDIT MASJID ==================== */}
+          {showMasjidModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 overflow-y-auto">
               <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-6 border border-emerald-100 my-8 max-h-[90vh] overflow-y-auto">
                 <h3 className="text-lg font-bold text-gray-900 mb-1">
-                  {editId ? 'Edit' : 'Tambah'} {currentTabConfig.label}
+                  {editMasjidId ? 'Edit Data Masjid / Mushalla' : 'Tambah Data Masjid / Mushalla'}
                 </h3>
                 <p className="text-xs text-gray-500 mb-4">
-                  Simpan data referensi Kebimasislaman dan hubungkan dengan rujukan tiket PTSP bila diperlukan.
+                  Lengkapi identitas masjid/mushalla sesuai data SIMAS Kemenag RI.
                 </p>
 
-                <form onSubmit={handleSaveRecord} className="space-y-4">
+                <form onSubmit={handleSaveMasjid} className="space-y-3.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                        ID Masjid (SIMAS)
+                      </label>
+                      <input
+                        type="text"
+                        value={mIdSimas}
+                        onChange={(e) => setMIdSimas(e.target.value)}
+                        placeholder="01.3.28.04.05.000001"
+                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-xs font-mono text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                        ID Baru
+                      </label>
+                      <input
+                        type="text"
+                        value={mIdBaru}
+                        onChange={(e) => setMIdBaru(e.target.value)}
+                        placeholder="01.4.75.04.05.000001"
+                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-xs font-mono text-gray-900"
+                      />
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                      {currentTabConfig.namaLabel} *
+                      Nama Masjid / Mushalla *
                     </label>
                     <input
                       type="text"
                       required
-                      value={namaObjek}
-                      onChange={(e) => setNamaObjek(e.target.value)}
-                      placeholder={currentTabConfig.namaPlaceholder}
-                      className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      value={mNama}
+                      onChange={(e) => setMNama(e.target.value)}
+                      placeholder="Contoh: Masjid Agung Baiturrahim"
+                      className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm text-gray-900"
                     />
                   </div>
 
@@ -949,173 +2102,153 @@ export default function KebimasislamanPage() {
                       </label>
                       <input
                         type="text"
-                        list="kecamatan-datalist"
-                        value={kecamatan}
-                        onChange={(e) => setKecamatan(e.target.value)}
-                        placeholder="Pilih atau ketik kecamatan"
-                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        list="kecamatan-masjid-list"
+                        value={mKecamatan}
+                        onChange={(e) => setMKecamatan(e.target.value)}
+                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm text-gray-900"
                       />
-                      <datalist id="kecamatan-datalist">
-                        {kecamatanFilterOptions.map((k) => (
+                      <datalist id="kecamatan-masjid-list">
+                        {kecamatanOptions.map((k) => (
                           <option key={k} value={k} />
                         ))}
                       </datalist>
                     </div>
-
                     <div>
                       <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                        Status Data
+                        Tipologi
                       </label>
-                      <select
-                        value={statusData}
-                        onChange={(e) => setStatusData(e.target.value)}
-                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-gray-900 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                      >
-                        {currentTabConfig.statusOptions.map((st) => (
-                          <option key={st} value={st}>
-                            {st}
-                          </option>
+                      <input
+                        type="text"
+                        list="tipologi-masjid-list"
+                        value={mTipologi}
+                        onChange={(e) => setMTipologi(e.target.value)}
+                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm text-gray-900"
+                      />
+                      <datalist id="tipologi-masjid-list">
+                        {tipologiOptions.map((tip) => (
+                          <option key={tip} value={tip} />
                         ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                      Alamat / Lokasi Lengkap
-                    </label>
-                    <input
-                      type="text"
-                      value={alamatLokasi}
-                      onChange={(e) => setAlamatLokasi(e.target.value)}
-                      placeholder="Desa / kelurahan / jalan / titik lokasi"
-                      className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                        {currentTabConfig.pjLabel}
-                      </label>
-                      <input
-                        type="text"
-                        value={penanggungJawab}
-                        onChange={(e) => setPenanggungJawab(e.target.value)}
-                        placeholder={currentTabConfig.pjPlaceholder}
-                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                        Nomor HP / Kontak
-                      </label>
-                      <input
-                        type="tel"
-                        value={noHp}
-                        onChange={(e) => setNoHp(e.target.value)}
-                        placeholder="Contoh: 08123456789"
-                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                        {currentTabConfig.extra1Label}
-                      </label>
-                      <input
-                        type="text"
-                        value={extra1}
-                        onChange={(e) => setExtra1(e.target.value)}
-                        placeholder={currentTabConfig.extra1Placeholder}
-                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                        {currentTabConfig.extra2Label}
-                      </label>
-                      <input
-                        type="text"
-                        value={extra2}
-                        onChange={(e) => setExtra2(e.target.value)}
-                        placeholder={currentTabConfig.extra2Placeholder}
-                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                      />
+                      </datalist>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                        Tanggal Pencatatan
-                      </label>
-                      <input
-                        type="date"
-                        value={tanggalCatatan}
-                        onChange={(e) => setTanggalCatatan(e.target.value)}
-                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-xs text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                        No. Tiket PTSP (Opsional)
+                        Status Tanah
                       </label>
                       <input
                         type="text"
-                        value={nomorTiketPtsp}
-                        onChange={(e) => setNomorTiketPtsp(e.target.value)}
-                        placeholder="PTSP-..."
-                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-xs font-mono text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        value={mStatusTanah}
+                        onChange={(e) => setMStatusTanah(e.target.value)}
+                        placeholder="Wakaf / SHM"
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-900"
                       />
                     </div>
-
                     <div>
                       <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                        Link Dokumen (Opsional)
+                        Tahun Berdiri
                       </label>
                       <input
-                        type="url"
-                        value={linkDokumen}
-                        onChange={(e) => setLinkDokumen(e.target.value)}
-                        placeholder="https://..."
-                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-xs text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        type="text"
+                        value={mTahunBerdiri}
+                        onChange={(e) => setMTahunBerdiri(e.target.value)}
+                        placeholder="1995"
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                        Telepon
+                      </label>
+                      <input
+                        type="text"
+                        value={mTelepon}
+                        onChange={(e) => setMTelepon(e.target.value)}
+                        placeholder="08..."
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                        Luas Tanah (m²)
+                      </label>
+                      <input
+                        type="text"
+                        value={mLuasTanah}
+                        onChange={(e) => setMLuasTanah(e.target.value)}
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                        Luas Bangunan (m²)
+                      </label>
+                      <input
+                        type="text"
+                        value={mLuasBangunan}
+                        onChange={(e) => setMLuasBangunan(e.target.value)}
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                        Latitude (SIMAS)
+                      </label>
+                      <input
+                        type="text"
+                        value={mLat}
+                        onChange={(e) => setMLat(e.target.value)}
+                        placeholder="0.507535"
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs font-mono text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                        Longitude (SIMAS)
+                      </label>
+                      <input
+                        type="text"
+                        value={mLng}
+                        onChange={(e) => setMLng(e.target.value)}
+                        placeholder="122.076154"
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs font-mono text-gray-900"
                       />
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                      Catatan / Keterangan Tambahan
+                      Alamat Lengkap
                     </label>
                     <textarea
-                      rows={3}
-                      value={catatanDetail}
-                      onChange={(e) => setCatatanDetail(e.target.value)}
-                      placeholder="Catatan hasil pengukuran, pembinaan, legalitas, atau keterangan lainnya..."
-                      className="w-full border border-gray-300 rounded-xl p-3 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      rows={2}
+                      value={mAlamat}
+                      onChange={(e) => setMAlamat(e.target.value)}
+                      className="w-full border border-gray-300 rounded-xl p-2.5 text-xs text-gray-900"
                     />
                   </div>
 
                   <div className="flex justify-end gap-2 pt-3 border-t">
                     <button
                       type="button"
-                      onClick={() => setShowModal(false)}
-                      className="px-4 py-2.5 border rounded-xl text-xs font-semibold text-gray-700"
+                      onClick={() => setShowMasjidModal(false)}
+                      className="px-4 py-2 border rounded-xl text-xs font-semibold text-gray-700"
                     >
                       Batal
                     </button>
                     <button
                       type="submit"
                       disabled={processing}
-                      className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold disabled:opacity-50"
+                      className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold disabled:opacity-50"
                     >
-                      {processing ? 'Menyimpan...' : 'Simpan Data'}
+                      {processing ? 'Menyimpan...' : 'Simpan'}
                     </button>
                   </div>
                 </form>
@@ -1123,8 +2256,642 @@ export default function KebimasislamanPage() {
             </div>
           )}
 
-          {/* MODAL KONFIRMASI HAPUS */}
-          {showDeleteModal && deleteTarget && (
+          {/* ==================== MODAL FORM SDM MASJID ==================== */}
+          {showSdmModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 overflow-y-auto">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 border border-emerald-100 my-8 max-h-[90vh] overflow-y-auto">
+                <h3 className="text-lg font-bold text-gray-900 mb-1">Form SDM Masjid</h3>
+                <p className="text-xs text-gray-500 mb-4">
+                  Catat struktur pengurus, sekretaris, imam, khatib, muazin, remaja masjid, dan jumlah jamaah.
+                </p>
+
+                <form onSubmit={handleSaveSdm} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                      Pilih Masjid / Mushalla *
+                    </label>
+                    <select
+                      required
+                      value={sdmSelectedMasjidId}
+                      onChange={(e) => handleSelectSdmMasjid(e.target.value)}
+                      className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-gray-900 bg-white"
+                    >
+                      <option value="">-- Pilih Masjid --</option>
+                      {masjidList.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.nama_masjid} {m.kecamatan ? `(${m.kecamatan})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Jumlah Pengurus:
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={sdmJumlahPengurus}
+                        onChange={(e) => setSdmJumlahPengurus(parseIntOrZero(e.target.value))}
+                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Ketua Pengurus: *
+                      </label>
+                      <input
+                        type="text"
+                        value={sdmKetuaPengurus}
+                        onChange={(e) => setSdmKetuaPengurus(e.target.value)}
+                        placeholder="Nama Ketua Pengurus / DKM"
+                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm text-gray-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Nomor HP Ketua:
+                      </label>
+                      <input
+                        type="tel"
+                        value={sdmNoHpKetua}
+                        onChange={(e) => setSdmNoHpKetua(e.target.value)}
+                        placeholder="08..."
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Nama Sekretaris:
+                      </label>
+                      <input
+                        type="text"
+                        value={sdmNamaSekretaris}
+                        onChange={(e) => setSdmNamaSekretaris(e.target.value)}
+                        placeholder="Nama Sekretaris"
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Nomor HP Sekretaris:
+                      </label>
+                      <input
+                        type="tel"
+                        value={sdmNoHpSekretaris}
+                        onChange={(e) => setSdmNoHpSekretaris(e.target.value)}
+                        placeholder="08..."
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-900"
+                      />
+                    </div>
+                  </div>
+
+                  {/* IMAM */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Imam: *</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={imamInput}
+                        onChange={(e) => setImamInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addPersonTag(imamInput, sdmImamList, setSdmImamList, setImamInput);
+                          }
+                        }}
+                        placeholder="Ketik nama imam, lalu tekan Enter"
+                        className="flex-1 border border-gray-300 rounded-xl px-3.5 py-2 text-sm text-gray-900"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addPersonTag(imamInput, sdmImamList, setSdmImamList, setImamInput)}
+                        className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold"
+                      >
+                        + Tambah
+                      </button>
+                    </div>
+                    <div className="mt-2 min-h-[38px] border border-dashed border-gray-200 rounded-xl p-2 flex flex-wrap gap-1.5 items-center">
+                      {sdmImamList.length === 0 ? (
+                        <span className="text-xs text-gray-400 mx-auto">Belum ada imam yang dicatat.</span>
+                      ) : (
+                        sdmImamList.map((name, idx) => (
+                          <span
+                            key={`${name}-${idx}`}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200"
+                          >
+                            {name}
+                            <button
+                              type="button"
+                              onClick={() => setSdmImamList(sdmImamList.filter((_, i) => i !== idx))}
+                              className="text-emerald-700 hover:text-red-600 font-bold"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* KHATIB */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Khatib:</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={khatibInput}
+                        onChange={(e) => setKhatibInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addPersonTag(khatibInput, sdmKhatibList, setSdmKhatibList, setKhatibInput);
+                          }
+                        }}
+                        placeholder="Ketik nama khatib, lalu tekan Enter"
+                        className="flex-1 border border-gray-300 rounded-xl px-3.5 py-2 text-sm text-gray-900"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          addPersonTag(khatibInput, sdmKhatibList, setSdmKhatibList, setKhatibInput)
+                        }
+                        className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold"
+                      >
+                        + Tambah
+                      </button>
+                    </div>
+                    <div className="mt-2 min-h-[38px] border border-dashed border-gray-200 rounded-xl p-2 flex flex-wrap gap-1.5 items-center">
+                      {sdmKhatibList.length === 0 ? (
+                        <span className="text-xs text-gray-400 mx-auto">Belum ada khatib yang dicatat.</span>
+                      ) : (
+                        sdmKhatibList.map((name, idx) => (
+                          <span
+                            key={`${name}-${idx}`}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200"
+                          >
+                            {name}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSdmKhatibList(sdmKhatibList.filter((_, i) => i !== idx))
+                              }
+                              className="text-emerald-700 hover:text-red-600 font-bold"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* MUAZIN */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Muazin:</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={muazinInput}
+                        onChange={(e) => setMuazinInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addPersonTag(
+                              muazinInput,
+                              sdmMuazinList,
+                              setSdmMuazinList,
+                              setMuazinInput
+                            );
+                          }
+                        }}
+                        placeholder="Ketik nama muazin, lalu tekan Enter"
+                        className="flex-1 border border-gray-300 rounded-xl px-3.5 py-2 text-sm text-gray-900"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          addPersonTag(
+                            muazinInput,
+                            sdmMuazinList,
+                            setSdmMuazinList,
+                            setMuazinInput
+                          )
+                        }
+                        className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold"
+                      >
+                        + Tambah
+                      </button>
+                    </div>
+                    <div className="mt-2 min-h-[38px] border border-dashed border-gray-200 rounded-xl p-2 flex flex-wrap gap-1.5 items-center">
+                      {sdmMuazinList.length === 0 ? (
+                        <span className="text-xs text-gray-400 mx-auto">Belum ada muazin yang dicatat.</span>
+                      ) : (
+                        sdmMuazinList.map((name, idx) => (
+                          <span
+                            key={`${name}-${idx}`}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200"
+                          >
+                            {name}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSdmMuazinList(sdmMuazinList.filter((_, i) => i !== idx))
+                              }
+                              className="text-emerald-700 hover:text-red-600 font-bold"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Jumlah Remaja:
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={sdmJumlahRemaja}
+                        onChange={(e) => setSdmJumlahRemaja(parseIntOrZero(e.target.value))}
+                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Ketua Remaja: *
+                      </label>
+                      <input
+                        type="text"
+                        value={sdmKetuaRemaja}
+                        onChange={(e) => setSdmKetuaRemaja(e.target.value)}
+                        placeholder="Nama Ketua Remaja Masjid"
+                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm text-gray-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      Jumlah Jamaah:
+                    </label>
+                    <select
+                      value={sdmKategoriJamaah}
+                      onChange={(e) => setSdmKategoriJamaah(e.target.value)}
+                      className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-gray-900 bg-white"
+                    >
+                      {JAMAAH_OPTIONS.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-3 border-t">
+                    <button
+                      type="button"
+                      onClick={() => setShowSdmModal(false)}
+                      className="px-4 py-2 border rounded-xl text-xs font-semibold text-gray-700"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={processing}
+                      className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold disabled:opacity-50"
+                    >
+                      {processing ? 'Menyimpan...' : 'Simpan SDM Masjid'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* ==================== MODAL FORM KALIBRASI ARAH KIBLAT ==================== */}
+          {showKiblatModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 overflow-y-auto">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 border border-emerald-100 my-8 max-h-[90vh] overflow-y-auto">
+                <h3 className="text-lg font-bold text-gray-900 mb-1">Form Kalibrasi Arah Kiblat</h3>
+                <p className="text-xs text-gray-500 mb-4">
+                  Penyimpangan dihitung otomatis dari selisih Azimut Bangunan dan Azimut Kiblat (+ / -).
+                </p>
+
+                <form onSubmit={handleSaveKiblat} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                      Pilih Masjid / Mushalla *
+                    </label>
+                    <select
+                      required
+                      value={kiblatSelectedMasjidId}
+                      onChange={(e) => handleSelectKiblatMasjid(e.target.value)}
+                      className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-gray-900 bg-white"
+                    >
+                      <option value="">-- Pilih Masjid --</option>
+                      {masjidList.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.nama_masjid} {m.kecamatan ? `(${m.kecamatan})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                        Latitude
+                      </label>
+                      <input
+                        type="text"
+                        value={kLatitude}
+                        onChange={(e) => setKLatitude(e.target.value)}
+                        placeholder="0.507535"
+                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm font-mono text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                        Lintang Utara
+                      </label>
+                      <input
+                        type="text"
+                        value={kLintangUtara}
+                        onChange={(e) => setKLintangUtara(e.target.value)}
+                        placeholder="00° 30' 27.13&quot; LU"
+                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm text-gray-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                        Longitude
+                      </label>
+                      <input
+                        type="text"
+                        value={kLongitude}
+                        onChange={(e) => setKLongitude(e.target.value)}
+                        placeholder="122.076154"
+                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm font-mono text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                        Bujur Timur
+                      </label>
+                      <input
+                        type="text"
+                        value={kBujurTimur}
+                        onChange={(e) => setKBujurTimur(e.target.value)}
+                        placeholder="122° 04' 34.15&quot; BT"
+                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm text-gray-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                        Azimut Bangunan (°)
+                      </label>
+                      <input
+                        type="number"
+                        step="any"
+                        value={kAzimutBangunan}
+                        onChange={(e) => setKAzimutBangunan(e.target.value)}
+                        placeholder="291.85"
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm font-mono text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                        Elevasi Tempat (m)
+                      </label>
+                      <input
+                        type="number"
+                        step="any"
+                        value={kElevasiTempat}
+                        onChange={(e) => setKElevasiTempat(e.target.value)}
+                        placeholder="18"
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm font-mono text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                        Azimut Kiblat (°)
+                      </label>
+                      <input
+                        type="number"
+                        step="any"
+                        value={kAzimutKiblat}
+                        onChange={(e) => setKAzimutKiblat(e.target.value)}
+                        placeholder="292.25"
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm font-mono text-gray-900"
+                      />
+                    </div>
+                  </div>
+
+                  {/* PENYIMPANGAN OTOMATIS + TANGGAL PENGUKURAN */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                      <div className="text-[11px] font-bold text-emerald-900 uppercase">
+                        Penyimpangan (Otomatis)
+                      </div>
+                      <div className="text-lg font-bold text-emerald-800 font-mono mt-0.5">
+                        {formatPenyimpangan(liveKiblatCalc.selisih)}
+                      </div>
+                      <div className="text-[11px] text-emerald-700 mt-0.5">
+                        Status: <strong>{liveKiblatCalc.status}</strong> (Azimut Bangunan − Azimut Kiblat)
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                        Tanggal Pengukuran
+                      </label>
+                      <input
+                        type="date"
+                        value={kTanggalPengukuran}
+                        onChange={(e) => setKTanggalPengukuran(e.target.value)}
+                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm text-gray-900"
+                      />
+                    </div>
+                  </div>
+
+                  {/* UPLOAD FOTO KALIBRASI (KOMPRESI OTOMATIS DI BROWSER) */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                      Foto Kalibrasi (Otomatis Dikompresi ≤ 1280px & ±200 KB)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleFotoFileChange}
+                      className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-800 bg-white"
+                    />
+                    {kFotoPreview && (
+                      <div className="mt-2">
+                        <img
+                          src={kFotoPreview}
+                          alt="Pratinjau Foto Kalibrasi"
+                          className="w-full max-h-48 object-cover rounded-xl border border-gray-200"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                      Catatan Pengukuran
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={kCatatan}
+                      onChange={(e) => setKCatatan(e.target.value)}
+                      placeholder="Keterangan lokasi pengukuran, alat yang digunakan, atau kondisi mihrab..."
+                      className="w-full border border-gray-300 rounded-xl p-2.5 text-xs text-gray-900"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-3 border-t">
+                    <button
+                      type="button"
+                      onClick={() => setShowKiblatModal(false)}
+                      className="px-4 py-2 border rounded-xl text-xs font-semibold text-gray-700"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={processing}
+                      className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold disabled:opacity-50"
+                    >
+                      {processing ? 'Menyimpan...' : 'Simpan Kalibrasi'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* ==================== MODAL IMPORT EXCEL ==================== */}
+          {importMode && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 overflow-y-auto">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 border border-emerald-100 my-8 max-h-[90vh] overflow-y-auto">
+                <h3 className="text-lg font-bold text-gray-900 mb-1">
+                  {importMode === 'masjid'
+                    ? 'Import Excel Data SIMAS Kemenag RI'
+                    : importMode === 'sdm_masjid'
+                    ? 'Import Excel SDM Masjid (Per Kolom)'
+                    : 'Import Excel Kalibrasi Arah Kiblat (Per Kolom)'}
+                </h3>
+                <p className="text-xs text-gray-500 mb-4">
+                  {importMode === 'masjid'
+                    ? 'Pilih file .xlsx / .xls / .csv hasil export SIMAS (mendukung kolom ID Masjid, Nama Masjid, Kecamatan, Tipologi, Status Tanah, Alamat, dll.).'
+                    : 'Pilih file .xlsx / .xls / .csv sesuai template kolom yang tersedia.'}
+                </p>
+
+                <div className="space-y-4">
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    onChange={handleExcelFileChange}
+                    className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-xs text-gray-800 bg-white"
+                  />
+
+                  {importFileName && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs text-gray-700 space-y-1">
+                      <div>
+                        File: <strong>{importFileName}</strong>
+                      </div>
+                      <div>
+                        Baris terbaca: <strong className="text-emerald-700">{importRowsPreview.length}</strong> data siap proses
+                        {importMode !== 'masjid' && (
+                          <span className="text-gray-500">
+                            {' '}
+                            (Cocok dgn data masjid:{' '}
+                            <strong>{importRowsPreview.filter((r) => r._matched).length}</strong>)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {importRowsPreview.length > 0 && (
+                    <div className="border border-gray-200 rounded-xl overflow-hidden max-h-56 overflow-y-auto">
+                      <table className="min-w-full text-xs divide-y divide-gray-200">
+                        <thead className="bg-gray-50 text-gray-600 text-left">
+                          <tr>
+                            <th className="px-3 py-2 font-semibold">Nama Masjid</th>
+                            <th className="px-3 py-2 font-semibold">Kecamatan</th>
+                            <th className="px-3 py-2 font-semibold">
+                              {importMode === 'masjid'
+                                ? 'Tipologi'
+                                : importMode === 'sdm_masjid'
+                                ? 'Ketua / Jamaah'
+                                : 'Penyimpangan'}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {importRowsPreview.slice(0, 15).map((row, i) => (
+                            <tr key={i}>
+                              <td className="px-3 py-2 font-medium text-gray-900">{row.nama_masjid}</td>
+                              <td className="px-3 py-2 text-gray-600">{row.kecamatan || '-'}</td>
+                              <td className="px-3 py-2 text-emerald-800 font-semibold">
+                                {importMode === 'masjid'
+                                  ? row.tipologi || '-'
+                                  : importMode === 'sdm_masjid'
+                                  ? `${row.ketua_pengurus || '-'} (${row.kategori_jamaah || '-'})`
+                                  : formatPenyimpangan(row.penyimpangan)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-2 pt-3 border-t">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImportMode(null);
+                        setImportRowsPreview([]);
+                        setImportFileName('');
+                      }}
+                      className="px-4 py-2 border rounded-xl text-xs font-semibold text-gray-700"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="button"
+                      disabled={processing || importRowsPreview.length === 0}
+                      onClick={handleExecuteImport}
+                      className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold disabled:opacity-50"
+                    >
+                      {processing ? 'Mengimport...' : `Import ${importRowsPreview.length} Data`}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ==================== MODAL KONFIRMASI HAPUS MASJID ==================== */}
+          {deleteTarget && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
               <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-red-100 text-center">
                 <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">
@@ -1137,7 +2904,7 @@ export default function KebimasislamanPage() {
                 <div className="flex justify-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setShowDeleteModal(false)}
+                    onClick={() => setDeleteTarget(null)}
                     className="flex-1 px-4 py-2.5 border rounded-xl text-xs font-semibold text-gray-700"
                   >
                     Batal
@@ -1145,7 +2912,7 @@ export default function KebimasislamanPage() {
                   <button
                     type="button"
                     disabled={processing}
-                    onClick={executeDelete}
+                    onClick={handleDeleteMasjid}
                     className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold disabled:opacity-50"
                   >
                     {processing ? 'Menghapus...' : 'Ya, Hapus'}

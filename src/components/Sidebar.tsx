@@ -9,20 +9,17 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const KEBIMAS_SUBMENUS = [
-  { key: 'masjid_mushalla', label: 'Masjid & Mushalla', adminOnly: false },
-  { key: 'arah_kiblat', label: 'Arah Kiblat Masjid & Mushalla', adminOnly: false },
-  { key: 'ormas_islam', label: 'Ormas Islam', adminOnly: false },
-  { key: 'paham_keagamaan', label: 'Paham Aliran Keagamaan', adminOnly: true },
-  { key: 'majelis_taklim', label: 'Majelis Taklim', adminOnly: false },
-  { key: 'data_lain', label: 'Data Lain', adminOnly: false },
+const MASJID_NESTED_MENUS = [
+  { key: 'masjid', label: 'Data Masjid (SIMAS)' },
+  { key: 'sdm_masjid', label: 'SDM Masjid' },
+  { key: 'arah_kiblat', label: 'Arah Kiblat' },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [logoUrl, setLogoUrl] = useState('');
   const [activeMode, setActiveMode] = useState<string>('pegawai');
-  const [activeKategoriParam, setActiveKategoriParam] = useState<string>('masjid_mushalla');
+  const [activeSubMenu, setActiveSubMenu] = useState<string>('masjid');
   const [loadingRole, setLoadingRole] = useState(true);
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -31,24 +28,28 @@ export default function Sidebar() {
     layananInternal: false,
     kepegawaian: true,
     dataKebimasislaman: pathname.startsWith('/admin/kebimasislaman'),
+    masjidNested: true,
     manajemen: true,
   });
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window === 'undefined') return;
+    const syncMenuQuery = () => {
       const params = new URLSearchParams(window.location.search);
-      const kat = params.get('kategori');
-      if (kat) {
-        setActiveKategoriParam(kat);
+      const menuParam = params.get('menu');
+      if (menuParam && MASJID_NESTED_MENUS.some((m) => m.key === menuParam)) {
+        setActiveSubMenu(menuParam);
       } else if (pathname.startsWith('/admin/kebimasislaman')) {
-        setActiveKategoriParam('masjid_mushalla');
+        setActiveSubMenu('masjid');
       }
-    }
+    };
+    syncMenuQuery();
+    window.addEventListener('popstate', syncMenuQuery);
+    return () => window.removeEventListener('popstate', syncMenuQuery);
   }, [pathname]);
 
   useEffect(() => {
     async function initSidebar() {
-      // 1. Muat Logo Instansi
       const { data: logoData } = await supabase
         .from('app_settings')
         .select('value_text')
@@ -58,7 +59,6 @@ export default function Sidebar() {
         setLogoUrl(logoData.value_text);
       }
 
-      // 2. Cek Mode Akses Aktif
       const savedMode = localStorage.getItem('active_mode');
       if (savedMode) {
         setActiveMode(savedMode);
@@ -90,7 +90,11 @@ export default function Sidebar() {
   useEffect(() => {
     setMoreOpen(false);
     if (pathname.startsWith('/admin/kebimasislaman')) {
-      setOpenMenus((prev) => ({ ...prev, dataKebimasislaman: true }));
+      setOpenMenus((prev) => ({
+        ...prev,
+        dataKebimasislaman: true,
+        masjidNested: true,
+      }));
     }
   }, [pathname]);
 
@@ -102,11 +106,6 @@ export default function Sidebar() {
   const isAdminKua = activeMode === 'admin_kua';
   const isAdminBimas = activeMode === 'admin_bimas';
   const isSuperAdmin = activeMode === 'super_admin';
-  const canSeeSensitiveKebimas = isSuperAdmin || isAdminBimas;
-
-  const visibleKebimasSubmenus = KEBIMAS_SUBMENUS.filter((item) =>
-    item.adminOnly ? canSeeSensitiveKebimas : true
-  );
 
   const renderMenuItems = (onItemClick?: () => void) => {
     if (loadingRole) {
@@ -225,7 +224,7 @@ export default function Sidebar() {
           )}
         </div>
 
-        {/* DATA KEBIMASISLAMAN */}
+        {/* DATA KEBIMASISLAMAN -> NESTED MASJID & MUSHALLA */}
         {(isSuperAdmin || isAdminBimas || isAdminKua) && (
           <div className="pt-2">
             <button
@@ -239,30 +238,48 @@ export default function Sidebar() {
               </div>
               <span className={`text-[10px] transition-transform ${openMenus.dataKebimasislaman ? 'rotate-180' : ''}`}>▼</span>
             </button>
+
             {openMenus.dataKebimasislaman && (
-              <div className="ml-4 pl-4 mt-1 border-l border-emerald-800/80 space-y-1">
-                {visibleKebimasSubmenus.map((sub) => {
-                  const isSubActive =
-                    pathname.startsWith('/admin/kebimasislaman') &&
-                    activeKategoriParam === sub.key;
-                  return (
-                    <Link
-                      key={sub.key}
-                      href={`/admin/kebimasislaman?kategori=${sub.key}`}
-                      onClick={() => {
-                        setActiveKategoriParam(sub.key);
-                        onItemClick?.();
-                      }}
-                      className={`block px-3 py-2 rounded-lg text-xs transition ${
-                        isSubActive
-                          ? 'bg-emerald-600 text-white font-bold shadow-md'
-                          : 'text-emerald-300/80 hover:bg-emerald-800/40 hover:text-white'
-                      }`}
-                    >
-                      • {sub.label}
-                    </Link>
-                  );
-                })}
+              <div className="ml-4 pl-3 mt-1 border-l border-emerald-800/80 space-y-1">
+                <button
+                  type="button"
+                  onClick={() => toggleMenu('masjidNested')}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition ${
+                    pathname.startsWith('/admin/kebimasislaman')
+                      ? 'bg-emerald-900/70 text-white'
+                      : 'text-emerald-200/90 hover:bg-emerald-800/40 hover:text-white'
+                  }`}
+                >
+                  <span>• Masjid & Mushalla</span>
+                  <span className={`text-[9px] transition-transform ${openMenus.masjidNested ? 'rotate-180' : ''}`}>▼</span>
+                </button>
+
+                {openMenus.masjidNested && (
+                  <div className="ml-3 pl-3 border-l border-emerald-700/60 space-y-1">
+                    {MASJID_NESTED_MENUS.map((sub) => {
+                      const isActive =
+                        pathname.startsWith('/admin/kebimasislaman') &&
+                        activeSubMenu === sub.key;
+                      return (
+                        <Link
+                          key={sub.key}
+                          href={`/admin/kebimasislaman?menu=${sub.key}`}
+                          onClick={() => {
+                            setActiveSubMenu(sub.key);
+                            onItemClick?.();
+                          }}
+                          className={`block px-2.5 py-1.5 rounded-lg text-[11px] transition ${
+                            isActive
+                              ? 'bg-emerald-600 text-white font-bold shadow-sm'
+                              : 'text-emerald-300/80 hover:bg-emerald-800/40 hover:text-white'
+                          }`}
+                        >
+                          ◦ {sub.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
