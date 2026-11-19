@@ -247,7 +247,7 @@ export default function AdminPtspPage() {
             noHpPetugas: noHpPetugas,
             linkSuratTugas: linkSuratTugas,
             catatanAdmin: catatanAdmin,
-            trackingUrl: `${window.location.origin}/ptsp/lacak?tiket=${selectedItem.nomor_tiket}`,
+            trackingUrl: `${window.location.origin}/ptsp/lacak?tiket=${encodeURIComponent(selectedItem.nomor_tiket)}`,
           }),
         }).catch((err) => console.error('Gagal mengirim email selesai:', err));
       }
@@ -264,6 +264,11 @@ export default function AdminPtspPage() {
     if (phone.startsWith('0')) {
       phone = '62' + phone.slice(1);
     }
+
+    const trackingUrl =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}/ptsp/lacak?tiket=${encodeURIComponent(item.nomor_tiket)}`
+        : '/ptsp/lacak';
 
     let pesan = `*PERMOHONAN PTSP SELESAI - KEMENAG POHUWATO*\n\n` +
       `Halo Bpk/Ibu *${item.nama_pemohon}*,\n` +
@@ -282,7 +287,7 @@ export default function AdminPtspPage() {
     }
 
     pesan += `Anda dapat memeriksa rincian lengkap melalui halaman lacak tiket:\n` +
-      `http://localhost:3000/ptsp/lacak\n\n` +
+      `${trackingUrl}\n\n` +
       `Terima kasih telah menggunakan layanan PTSP Online Bimas Islam Kantor Kementerian Agama Kabupaten Pohuwato.`;
 
     const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(pesan)}`;
