@@ -299,6 +299,41 @@ export default function UserManagementPage() {
     );
   });
 
+  const renderRoleBadge = (p: any) => {
+    if (p.role === 'super_admin') {
+      return (
+        <span className="px-2.5 py-1 text-[11px] font-bold rounded-full bg-purple-100 text-purple-800 border border-purple-200 inline-block">
+          👑 SUPER ADMIN
+        </span>
+      );
+    }
+    if (p.jabatan_admin === 'admin_bimas') {
+      return (
+        <span className="px-2.5 py-1 text-[11px] font-bold rounded-full bg-blue-100 text-blue-800 border border-blue-200 inline-block">
+          🛡️ ADMIN BIMAS
+        </span>
+      );
+    }
+    if (p.jabatan_admin === 'admin_kua') {
+      return (
+        <span className="px-2.5 py-1 text-[11px] font-bold rounded-full bg-amber-100 text-amber-800 border border-amber-200 inline-block">
+          🕌 ADMIN KUA
+        </span>
+      );
+    }
+    return (
+      <span className="px-2.5 py-1 text-[11px] font-semibold rounded-full bg-gray-100 text-gray-700 border border-gray-200 inline-block">
+        👤 PEGAWAI
+      </span>
+    );
+  };
+
+  const getUnitTugasLabel = (p: any) => {
+    if (p.jabatan_admin === 'admin_bimas') return 'Seksi Bimas Islam Kab. Pohuwato';
+    if (p.jabatan_admin === 'admin_kua') return p.kua_wilayah || '-';
+    return '-';
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <Sidebar />
@@ -306,56 +341,59 @@ export default function UserManagementPage() {
       <div className="flex-1 flex flex-col min-w-0">
         <HeaderBar />
 
-        <main className="flex-1 overflow-y-auto p-6 sm:p-10 relative">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-10 pb-24 md:pb-10 relative">
           
           {toast && (
-            <div className="fixed top-6 right-6 z-[9999] max-w-md w-full bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 flex items-start gap-3.5 transition-all">
+            <div className="fixed top-4 right-4 left-4 sm:left-auto sm:top-6 sm:right-6 z-[9999] max-w-md sm:w-full bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 flex items-start gap-3.5 transition-all">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${toast.type === 'success' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
                 ✓
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <h4 className="text-sm font-bold text-gray-900">{toast.title}</h4>
-                <p className="text-xs text-gray-600 mt-0.5">{toast.message}</p>
+                <p className="text-xs text-gray-600 mt-0.5 break-words">{toast.message}</p>
               </div>
-              <button onClick={() => setToast(null)} className="text-gray-400 font-bold p-1">✕</button>
+              <button onClick={() => setToast(null)} className="text-gray-400 font-bold p-1 shrink-0">✕</button>
             </div>
           )}
 
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Manajemen Akun & Penunjukan Admin</h1>
-                <p className="text-sm text-gray-600 mt-1">Kelola akun login berbasis NIP, tunjuk Admin Bimas/KUA, dan reset kata sandi</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Manajemen Akun & Penunjukan Admin</h1>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">Kelola akun login berbasis NIP, tunjuk Admin Bimas/KUA, dan reset kata sandi</p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2.5">
+              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                 <button
+                  type="button"
                   onClick={openResetMassalConfirm}
                   disabled={processing}
-                  className="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 px-4 py-2.5 rounded-xl font-bold text-xs transition"
+                  className="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 px-3.5 py-2.5 rounded-xl font-bold text-xs transition flex-1 sm:flex-none text-center"
                 >
                   🔑 Reset Password Massal
                 </button>
                 {pegawaiAvailable.length > 0 && (
                   <button
+                    type="button"
                     onClick={openBuatMassalConfirm}
                     disabled={processing}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs transition shadow-md"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2.5 rounded-xl font-bold text-xs transition shadow-md flex-1 sm:flex-none text-center"
                   >
                     ⚡ Buat Akun Massal ({pegawaiAvailable.length})
                   </button>
                 )}
                 <button
+                  type="button"
                   onClick={() => setShowAddModal(true)}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs transition shadow-md"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs transition shadow-md flex-1 sm:flex-none text-center"
                 >
                   + Buat Akun Pegawai
                 </button>
               </div>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 text-xs text-blue-900 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-              <div>
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 text-xs text-blue-900 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5">
+              <div className="leading-relaxed">
                 <span className="font-bold">ℹ️ Ketentuan Akun Otomatis:</span> Pegawai login menggunakan <strong>NIP</strong>. Password bawaan otomatis untuk akun baru & hasil reset adalah: <code className="bg-white px-2 py-0.5 rounded border border-blue-300 font-bold text-blue-700">Kemenag2026!</code>
               </div>
               <div className="text-emerald-800 font-bold bg-emerald-100 px-3 py-1 rounded-lg border border-emerald-200 shrink-0">
@@ -364,14 +402,17 @@ export default function UserManagementPage() {
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="p-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cari Nama Pegawai atau NIP..."
-                  className="w-full sm:w-80 px-4 py-2 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                />
+              <div className="p-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+                <div className="relative w-full sm:w-80">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">🔍</span>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cari Nama Pegawai atau NIP..."
+                    className="w-full pl-9 pr-4 py-2 bg-white border border-gray-300 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                </div>
                 <span className="text-xs font-semibold text-gray-600">
                   Total Akun Aktif: <strong className="text-emerald-700">{profiles.length} Pengguna</strong>
                 </span>
@@ -379,60 +420,117 @@ export default function UserManagementPage() {
 
               {loading ? (
                 <div className="p-12 text-center text-gray-500 text-sm">Memuat daftar akun pengguna...</div>
+              ) : filteredProfiles.length === 0 ? (
+                <div className="p-12 text-center text-gray-500 text-sm">Tidak ada data akun yang cocok.</div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 text-sm">
-                    <thead className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider text-left">
-                      <tr>
-                        <th className="px-5 py-3.5 font-semibold">No</th>
-                        <th className="px-5 py-3.5 font-semibold">Nama Pegawai</th>
-                        <th className="px-5 py-3.5 font-semibold">Username (NIP / Email)</th>
-                        <th className="px-5 py-3.5 font-semibold">Status Hak Akses</th>
-                        <th className="px-5 py-3.5 font-semibold">Unit Tugas Admin</th>
-                        <th className="px-5 py-3.5 font-semibold text-right">Aksi Pengelolaan</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 bg-white">
-                      {filteredProfiles.map((p, idx) => {
-                        const isSuperAdmin = p.role === 'super_admin';
-                        return (
-                          <tr key={p.id} className="hover:bg-gray-50/70 transition">
-                            <td className="px-5 py-4 text-gray-500">{idx + 1}</td>
-                            <td className="px-5 py-4 font-bold text-gray-900">{p.nama_lengkap}</td>
-                            <td className="px-5 py-4 font-mono text-xs text-gray-700">
-                              {p.nip ? <span className="bg-gray-100 px-2.5 py-1 rounded-md font-semibold text-emerald-800">NIP: {p.nip}</span> : <span>{p.email}</span>}
-                            </td>
-                            <td className="px-5 py-4">
-                              {isSuperAdmin ? (
-                                <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-purple-100 text-purple-800 border border-purple-200">👑 SUPER ADMIN</span>
-                              ) : p.jabatan_admin === 'admin_bimas' ? (
-                                <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-blue-100 text-blue-800 border border-blue-200">🛡️ ADMIN BIMAS</span>
-                              ) : p.jabatan_admin === 'admin_kua' ? (
-                                <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-amber-100 text-amber-800 border border-amber-200">🕌 ADMIN KUA</span>
-                              ) : (
-                                <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700 border border-gray-200">👤 PEGAWAI</span>
-                              )}
-                            </td>
-                            <td className="px-5 py-4 text-xs text-gray-600 font-medium">
-                              {p.jabatan_admin === 'admin_bimas' ? 'Seksi Bimas Islam Kab. Pohuwato' : p.jabatan_admin === 'admin_kua' ? (p.kua_wilayah || '-') : '-'}
-                            </td>
-                            <td className="px-5 py-4 text-right whitespace-nowrap">
-                              {isSuperAdmin ? (
-                                <span className="text-xs text-gray-400 italic">Akun Sistem Terkunci</span>
-                              ) : (
-                                <div className="inline-flex items-center gap-1.5">
-                                  <button onClick={() => openEditModal(p)} className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition">Edit</button>
-                                  <button onClick={() => openResetSingleConfirm(p.id, p.nama_lengkap)} className="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition">Reset</button>
-                                  <button onClick={() => openDeleteConfirm(p.id, p.nama_lengkap)} className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition">Hapus</button>
-                                </div>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                <>
+                  {/* TAMPILAN KARTU KHUSUS LAYAR HP (< md) */}
+                  <div className="md:hidden divide-y divide-gray-100 bg-white">
+                    {filteredProfiles.map((p, idx) => {
+                      const isSuperAdmin = p.role === 'super_admin';
+                      return (
+                        <div key={p.id} className="p-4 space-y-3">
+                          <div className="flex items-start justify-between gap-2.5">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
+                                  #{idx + 1}
+                                </span>
+                                <p className="text-sm font-bold text-gray-900 break-words">
+                                  {p.nama_lengkap}
+                                </p>
+                              </div>
+                              <p className="font-mono text-xs text-gray-600 mt-1.5 break-all">
+                                {p.nip ? `NIP: ${p.nip}` : p.email}
+                              </p>
+                            </div>
+                            <div className="shrink-0">{renderRoleBadge(p)}</div>
+                          </div>
+
+                          <div className="text-xs text-gray-600 bg-gray-50/80 rounded-xl px-3 py-2 border border-gray-100">
+                            <span className="font-semibold text-gray-500">Unit Tugas: </span>
+                            <span className="font-medium text-gray-800">{getUnitTugasLabel(p)}</span>
+                          </div>
+
+                          <div className="pt-1 flex items-center justify-end gap-2">
+                            {isSuperAdmin ? (
+                              <span className="text-xs text-gray-400 italic">Akun Sistem Terkunci</span>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => openEditModal(p)}
+                                  className="flex-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 py-2 rounded-xl text-xs font-bold transition text-center"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => openResetSingleConfirm(p.id, p.nama_lengkap)}
+                                  className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 py-2 rounded-xl text-xs font-bold transition text-center"
+                                >
+                                  Reset
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => openDeleteConfirm(p.id, p.nama_lengkap)}
+                                  className="flex-1 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 py-2 rounded-xl text-xs font-bold transition text-center"
+                                >
+                                  Hapus
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* TAMPILAN TABEL DESKTOP (>= md) */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 text-sm">
+                      <thead className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider text-left">
+                        <tr>
+                          <th className="px-5 py-3.5 font-semibold">No</th>
+                          <th className="px-5 py-3.5 font-semibold">Nama Pegawai</th>
+                          <th className="px-5 py-3.5 font-semibold">Username (NIP / Email)</th>
+                          <th className="px-5 py-3.5 font-semibold">Status Hak Akses</th>
+                          <th className="px-5 py-3.5 font-semibold">Unit Tugas Admin</th>
+                          <th className="px-5 py-3.5 font-semibold text-right">Aksi Pengelolaan</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 bg-white">
+                        {filteredProfiles.map((p, idx) => {
+                          const isSuperAdmin = p.role === 'super_admin';
+                          return (
+                            <tr key={p.id} className="hover:bg-gray-50/70 transition">
+                              <td className="px-5 py-4 text-gray-500">{idx + 1}</td>
+                              <td className="px-5 py-4 font-bold text-gray-900">{p.nama_lengkap}</td>
+                              <td className="px-5 py-4 font-mono text-xs text-gray-700">
+                                {p.nip ? <span className="bg-gray-100 px-2.5 py-1 rounded-md font-semibold text-emerald-800">NIP: {p.nip}</span> : <span>{p.email}</span>}
+                              </td>
+                              <td className="px-5 py-4">{renderRoleBadge(p)}</td>
+                              <td className="px-5 py-4 text-xs text-gray-600 font-medium">
+                                {getUnitTugasLabel(p)}
+                              </td>
+                              <td className="px-5 py-4 text-right whitespace-nowrap">
+                                {isSuperAdmin ? (
+                                  <span className="text-xs text-gray-400 italic">Akun Sistem Terkunci</span>
+                                ) : (
+                                  <div className="inline-flex items-center gap-1.5">
+                                    <button type="button" onClick={() => openEditModal(p)} className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition">Edit</button>
+                                    <button type="button" onClick={() => openResetSingleConfirm(p.id, p.nama_lengkap)} className="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition">Reset</button>
+                                    <button type="button" onClick={() => openDeleteConfirm(p.id, p.nama_lengkap)} className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition">Hapus</button>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -440,10 +538,10 @@ export default function UserManagementPage() {
           {/* MODAL TAMBAH AKUN PEGAWAI */}
           {showAddModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-              <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center pb-3 border-b mb-4">
                   <h3 className="text-lg font-bold text-gray-900">+ Buat Akun Login Pegawai</h3>
-                  <button onClick={() => setShowAddModal(false)} className="text-gray-400 font-bold p-1">✕</button>
+                  <button type="button" onClick={() => setShowAddModal(false)} className="text-gray-400 font-bold p-1">✕</button>
                 </div>
 
                 <form onSubmit={handleCreateAccount} className="space-y-4">
@@ -527,10 +625,10 @@ export default function UserManagementPage() {
           {/* MODAL EDIT AKUN & HAK AKSES */}
           {showEditModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-              <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center pb-3 border-b mb-4">
                   <h3 className="text-lg font-bold text-gray-900">Edit Akun & Hak Akses</h3>
-                  <button onClick={() => setShowEditModal(false)} className="text-gray-400 font-bold p-1">✕</button>
+                  <button type="button" onClick={() => setShowEditModal(false)} className="text-gray-400 font-bold p-1">✕</button>
                 </div>
 
                 <form onSubmit={handleSaveEdit} className="space-y-4">
@@ -604,7 +702,7 @@ export default function UserManagementPage() {
           {/* MODAL KONFIRMASI KUSTOM */}
           {confirmModal.isOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 text-center">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 text-center max-h-[90vh] overflow-y-auto">
                 <div className="w-14 h-14 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4 text-2xl">⚠️</div>
                 <h3 className="text-lg font-bold text-gray-900 mb-2">{confirmModal.title}</h3>
                 <p className="text-sm text-gray-800 mb-2">{confirmModal.message}</p>
@@ -618,8 +716,8 @@ export default function UserManagementPage() {
                 )}
 
                 <div className="flex gap-3">
-                  <button onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })} className="flex-1 py-2.5 bg-gray-100 rounded-xl text-xs font-bold">Batal</button>
-                  <button onClick={executeConfirmedAction} disabled={processing} className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-xs font-bold">
+                  <button type="button" onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })} className="flex-1 py-2.5 bg-gray-100 rounded-xl text-xs font-bold">Batal</button>
+                  <button type="button" onClick={executeConfirmedAction} disabled={processing} className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-xs font-bold">
                     {processing ? 'Memproses...' : 'Ya, Lanjutkan'}
                   </button>
                 </div>

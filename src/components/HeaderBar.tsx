@@ -68,20 +68,29 @@ export default function HeaderBar() {
     return '👤 PEGAWAI (PRIBADI)';
   };
 
+  const hasDualRole = Boolean(profile && (profile.role === 'super_admin' || profile.jabatan_admin));
+
   return (
-    <header className="h-16 sm:h-20 bg-white border-b border-gray-200 px-4 sm:px-10 flex items-center justify-between gap-3 sticky top-0 z-30 shadow-xs">
+    <header className="min-h-16 sm:h-20 bg-white border-b border-gray-200 px-4 sm:px-10 py-2 sm:py-0 flex items-center justify-between gap-3 sticky top-0 z-30 shadow-xs">
       <div className="min-w-0 flex-1">
         <h2 className="text-xs sm:text-base font-bold text-gray-800 truncate">
           Sistem Informasi Manajemen Bimas Islam
         </h2>
-        <p className="text-[11px] sm:text-xs text-gray-500 truncate">
-          Kantor Kementerian Agama Kabupaten Pohuwato
-        </p>
+        <div className="flex items-center gap-2 mt-0.5">
+          <p className="text-[11px] sm:text-xs text-gray-500 truncate">
+            Kantor Kementerian Agama Kabupaten Pohuwato
+          </p>
+          {hasDualRole && (
+            <span className="md:hidden inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shrink-0">
+              {getModeLabel(activeMode)}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
         {/* Indikator / Switcher Mode Aktif jika punya peran ganda */}
-        {profile && (profile.role === 'super_admin' || profile.jabatan_admin) && (
+        {hasDualRole && (
           <div className="hidden md:flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200 text-xs font-bold">
             <span className="px-3 py-1 text-gray-500">Mode:</span>
             <span className="px-3 py-1 bg-white text-emerald-800 rounded-lg shadow-xs">
@@ -121,7 +130,7 @@ export default function HeaderBar() {
               </div>
 
               {/* MENU ALIH PERAN (ROLE SWITCHER) */}
-              {profile && (profile.role === 'super_admin' || profile.jabatan_admin) && (
+              {hasDualRole && (
                 <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50/50">
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Alih Peran Mode Akses:</p>
                   <div className="space-y-1">

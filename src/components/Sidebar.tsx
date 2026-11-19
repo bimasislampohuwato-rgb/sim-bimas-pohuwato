@@ -284,16 +284,16 @@ export default function Sidebar() {
           active: pathname.startsWith('/pegawai'),
         },
         {
+          label: 'PTSP',
+          href: '/admin/ptsp',
+          icon: '📄',
+          active: pathname.startsWith('/admin/ptsp'),
+        },
+        {
           label: 'Akun',
           href: '/akun',
           icon: '⚙️',
           active: pathname === '/akun',
-        },
-        {
-          label: 'Bantuan',
-          href: '/pegawai',
-          icon: '📋',
-          active: false,
         },
       ]
     : [
@@ -358,9 +358,9 @@ export default function Sidebar() {
       {/* BOTTOM NAVIGATION BAR MOBILE (< md) */}
       <nav
         aria-label="Navigasi Mobile"
-        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#062e21] text-emerald-100 border-t border-emerald-800/80 shadow-2xl select-none"
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#062e21] text-emerald-100 border-t border-emerald-800/80 shadow-2xl select-none pb-[env(safe-area-inset-bottom)]"
       >
-        <div className="grid grid-cols-4 items-center px-1 py-1.5">
+        <div className="grid grid-cols-4 items-center px-1.5 py-1.5 gap-1">
           {primaryMobileItems.map((item, idx) => (
             <Link
               key={idx}
@@ -431,7 +431,7 @@ export default function Sidebar() {
               {renderMenuItems(() => setMoreOpen(false))}
             </div>
 
-            <div className="px-5 py-3 border-t border-emerald-900/70 bg-[#042217]/50 text-center">
+            <div className="px-5 py-3 border-t border-emerald-900/70 bg-[#042217]/50 text-center pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
               <p className="text-[10px] text-emerald-400/70">
                 © 2026 Kemenag Kab. Pohuwato
               </p>
