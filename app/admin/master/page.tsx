@@ -13,12 +13,12 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 export default function MasterDataPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'jabatan' | 'kategori_jabatan' | 'kua' | 'kecamatan' | 'logo_instansi'>('jabatan');
-  
+
   const [jabatanList, setJabatanList] = useState<any[]>([]);
   const [kategoriJabatanList, setKategoriJabatanList] = useState<any[]>([]);
   const [kuaList, setKuaList] = useState<any[]>([]);
   const [kecamatanList, setKecamatanList] = useState<any[]>([]);
-  
+
   // State Logo Instansi (Upload)
   const [logoUrl, setLogoUrl] = useState('');
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null);
@@ -35,8 +35,8 @@ export default function MasterDataPage() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; nama: string } | null>(null);
 
   // Field Form Umum (Jabatan, Kategori Jabatan & Kecamatan)
-  const [inputField1, setInputField1] = useState(''); 
-  const [inputField2, setInputField2] = useState(''); 
+  const [inputField1, setInputField1] = useState('');
+  const [inputField2, setInputField2] = useState('');
   const [inputKategoriJabatan, setInputKategoriJabatan] = useState('');
 
   // Field Form Khusus KUA (Tabel KuaProfile)
@@ -144,11 +144,11 @@ export default function MasterDataPage() {
         return;
       }
       tableName = 'MasterJabatan';
-      payload = { 
-        namaJabatan: inputField1, 
+      payload = {
+        namaJabatan: inputField1,
         kategori: inputKategoriJabatan,
         deskripsi: inputField2,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       };
 
       if (!editId) {
@@ -161,10 +161,10 @@ export default function MasterDataPage() {
         return;
       }
       tableName = 'MasterKategoriJabatan';
-      payload = { 
-        namaKategori: inputField1, 
+      payload = {
+        namaKategori: inputField1,
         deskripsi: inputField2,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       };
 
       if (!editId) {
@@ -177,10 +177,10 @@ export default function MasterDataPage() {
         return;
       }
       tableName = 'MasterKecamatan';
-      payload = { 
-        kodeKecamatan: inputField1, 
+      payload = {
+        kodeKecamatan: inputField1,
         namaKecamatan: inputField2,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       };
 
       if (!editId) {
@@ -194,15 +194,15 @@ export default function MasterDataPage() {
         return;
       }
       tableName = 'KuaProfile';
-      payload = { 
-        namaKua: inputNamaKua, 
+      payload = {
+        namaKua: inputNamaKua,
         alamat: inputAlamatKua || null,
         telepon: inputTeleponKua || null,
         email: inputEmailKua || null,
         kecamatanId: inputKecamatanIdKua,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       };
-      
+
       if (!editId) {
         payload.id = crypto.randomUUID ? crypto.randomUUID() : 'kua_' + Date.now();
         payload.createdAt = new Date().toISOString();
@@ -359,7 +359,7 @@ export default function MasterDataPage() {
         <HeaderBar />
 
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-10 pb-24 md:pb-10 relative">
-          
+
           {toast && (
             <div className="fixed top-4 right-4 left-4 sm:left-auto sm:top-6 sm:right-6 z-[9999] max-w-md sm:w-full bg-white rounded-2xl shadow-2xl border-2 border-gray-200 p-4 flex items-start gap-3.5 animate-fade-in">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold ${toast.type === 'success' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
@@ -374,7 +374,7 @@ export default function MasterDataPage() {
           )}
 
           <div className="max-w-6xl mx-auto">
-            
+
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Master Data Utama</h1>

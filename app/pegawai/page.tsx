@@ -126,7 +126,7 @@ export default function DaftarPegawaiPage() {
         <HeaderBar />
 
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-10 pb-24 md:pb-10 relative">
-          
+
           {toast && (
             <div className="fixed top-4 right-4 left-4 sm:left-auto sm:top-6 sm:right-6 z-[9999] max-w-md sm:w-full bg-white rounded-2xl shadow-2xl border-2 border-emerald-500 p-4 flex items-start gap-3.5">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${toast.type === 'success' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600 font-bold'}`}>
@@ -141,7 +141,7 @@ export default function DaftarPegawaiPage() {
           )}
 
           <div className="max-w-7xl mx-auto">
-            
+
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
