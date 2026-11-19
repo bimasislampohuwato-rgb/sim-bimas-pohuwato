@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import Sidebar from '@/src/components/Sidebar';
 import HeaderBar from '@/src/components/HeaderBar';
@@ -32,7 +31,6 @@ interface ConfirmDialogState {
 
 export default function UserManagementPage() {
   const router = useRouter();
-  const pathname = usePathname();
   const [profiles, setProfiles] = useState<any[]>([]);
   const [pegawaiAvailable, setPegawaiAvailable] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -143,7 +141,7 @@ export default function UserManagementPage() {
       nip: selectedNip,
       namaLengkap: selectedNamaBaru,
       jabatanAdmin: jabatanAdminBaru,
-      kuaWilayah: kuaWilayahBaru,
+      kuaWilayah: jabatanAdminBaru === 'admin_kua' ? kuaWilayahBaru : '',
     });
     setProcessing(false);
 
@@ -154,7 +152,8 @@ export default function UserManagementPage() {
       setSelectedNamaBaru('');
       setJabatanAdminBaru('');
       setKuaWilayahBaru('');
-      refreshAllData();
+      router.refresh();
+      await refreshAllData();
     } else {
       triggerToast('error', 'Gagal Membuat Akun', res.message);
     }
@@ -165,7 +164,7 @@ export default function UserManagementPage() {
     setEditNip(p.nip || p.email);
     setEditNama(p.nama_lengkap);
     setEditJabatanAdmin(p.jabatan_admin || '');
-    setEditKuaWilayah(p.kua_wilayah || '');
+    setEditKuaWilayah(p.jabatan_admin === 'admin_kua' ? (p.kua_wilayah || '') : '');
     setShowEditModal(true);
   };
 
@@ -176,14 +175,20 @@ export default function UserManagementPage() {
       userId: editUserId,
       namaLengkap: editNama,
       jabatanAdmin: editJabatanAdmin,
-      kuaWilayah: editKuaWilayah,
+      kuaWilayah: editJabatanAdmin === 'admin_kua' ? editKuaWilayah : '',
     });
     setProcessing(false);
 
     if (res.success) {
+      if (res.data) {
+        setProfiles((prev) =>
+          prev.map((item) => (item.id === editUserId ? { ...item, ...res.data } : item))
+        );
+      }
       triggerToast('success', 'Perubahan Disimpan', res.message);
       setShowEditModal(false);
-      refreshAllData();
+      router.refresh();
+      await refreshAllData();
     } else {
       triggerToast('error', 'Gagal Menyimpan', res.message);
     }
@@ -248,7 +253,8 @@ export default function UserManagementPage() {
       setConfirmModal({ ...confirmModal, isOpen: false });
       if (res.success) {
         triggerToast('success', 'Akun Berhasil Dihapus', res.message);
-        refreshAllData();
+        router.refresh();
+        await refreshAllData();
       } else {
         triggerToast('error', 'Gagal Menghapus Akun', res.message);
       }
@@ -276,7 +282,8 @@ export default function UserManagementPage() {
       setConfirmModal({ ...confirmModal, isOpen: false });
       if (res.success) {
         triggerToast('success', 'Pembuatan Akun Massal Berhasil', res.message);
-        refreshAllData();
+        router.refresh();
+        await refreshAllData();
       } else {
         triggerToast('error', 'Gagal Pembuatan Massal', res.message);
       }
@@ -407,7 +414,7 @@ export default function UserManagementPage() {
                               )}
                             </td>
                             <td className="px-5 py-4 text-xs text-gray-600 font-medium">
-                              {p.jabatan_admin === 'admin_bimas' ? 'Seksi Bimas Islam Kab. Pohuwato' : p.kua_wilayah || '-'}
+                              {p.jabatan_admin === 'admin_bimas' ? 'Seksi Bimas Islam Kab. Pohuwato' : p.jabatan_admin === 'admin_kua' ? (p.kua_wilayah || '-') : '-'}
                             </td>
                             <td className="px-5 py-4 text-right whitespace-nowrap">
                               {isSuperAdmin ? (
@@ -471,7 +478,13 @@ export default function UserManagementPage() {
                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Hak Akses / Jabatan Admin</label>
                     <select
                       value={jabatanAdminBaru}
-                      onChange={(e) => setJabatanAdminBaru(e.target.value)}
+                      onChange={(e) => {
+                        const nextJabatan = e.target.value;
+                        setJabatanAdminBaru(nextJabatan);
+                        if (nextJabatan !== 'admin_kua') {
+                          setKuaWilayahBaru('');
+                        }
+                      }}
                       className="w-full border rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
                     >
                       <option value="">Pegawai Biasa (Akses Standar)</option>
@@ -546,7 +559,13 @@ export default function UserManagementPage() {
                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Hak Akses / Jabatan Admin</label>
                     <select
                       value={editJabatanAdmin}
-                      onChange={(e) => setEditJabatanAdmin(e.target.value)}
+                      onChange={(e) => {
+                        const nextJabatan = e.target.value;
+                        setEditJabatanAdmin(nextJabatan);
+                        if (nextJabatan !== 'admin_kua') {
+                          setEditKuaWilayah('');
+                        }
+                      }}
                       className="w-full border rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
                     >
                       <option value="">Pegawai Biasa (Akses Standar)</option>
