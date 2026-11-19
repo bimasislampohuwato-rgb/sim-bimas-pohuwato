@@ -274,7 +274,7 @@ export default function Sidebar() {
     );
   };
 
-  // 3 Menu Utama untuk Bottom Nav di HP + 1 tombol More
+  // Menu Utama untuk Bottom Nav di HP (tanpa menu Akun; PTSP disembunyikan di Mode Pegawai)
   const primaryMobileItems = isPegawaiMode
     ? [
         {
@@ -282,18 +282,6 @@ export default function Sidebar() {
           href: '/pegawai',
           icon: '🪪',
           active: pathname.startsWith('/pegawai'),
-        },
-        {
-          label: 'PTSP',
-          href: '/admin/ptsp',
-          icon: '📄',
-          active: pathname.startsWith('/admin/ptsp'),
-        },
-        {
-          label: 'Akun',
-          href: '/akun',
-          icon: '⚙️',
-          active: pathname === '/akun',
         },
       ]
     : [
@@ -309,13 +297,9 @@ export default function Sidebar() {
           icon: isSuperAdmin || isAdminBimas ? '📄' : '👥',
           active: pathname.startsWith('/admin/ptsp'),
         },
-        {
-          label: 'Akun',
-          href: '/akun',
-          icon: '👤',
-          active: pathname === '/akun',
-        },
       ];
+
+  const mobileGridColsClass = isPegawaiMode ? 'grid-cols-2' : 'grid-cols-3';
 
   return (
     <>
@@ -360,7 +344,7 @@ export default function Sidebar() {
         aria-label="Navigasi Mobile"
         className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#062e21] text-emerald-100 border-t border-emerald-800/80 shadow-2xl select-none pb-[env(safe-area-inset-bottom)]"
       >
-        <div className="grid grid-cols-4 items-center px-1.5 py-1.5 gap-1">
+        <div className={`grid ${mobileGridColsClass} items-center px-2 py-1.5 gap-1.5`}>
           {primaryMobileItems.map((item, idx) => (
             <Link
               key={idx}
