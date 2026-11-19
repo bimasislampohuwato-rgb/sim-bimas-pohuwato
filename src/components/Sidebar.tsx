@@ -9,10 +9,20 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+const KEBIMAS_SUBMENUS = [
+  { key: 'masjid_mushalla', label: 'Masjid & Mushalla', adminOnly: false },
+  { key: 'arah_kiblat', label: 'Arah Kiblat Masjid & Mushalla', adminOnly: false },
+  { key: 'ormas_islam', label: 'Ormas Islam', adminOnly: false },
+  { key: 'paham_keagamaan', label: 'Paham Aliran Keagamaan', adminOnly: true },
+  { key: 'majelis_taklim', label: 'Majelis Taklim', adminOnly: false },
+  { key: 'data_lain', label: 'Data Lain', adminOnly: false },
+];
+
 export default function Sidebar() {
   const pathname = usePathname();
   const [logoUrl, setLogoUrl] = useState('');
   const [activeMode, setActiveMode] = useState<string>('pegawai');
+  const [activeKategoriParam, setActiveKategoriParam] = useState<string>('masjid_mushalla');
   const [loadingRole, setLoadingRole] = useState(true);
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -23,6 +33,18 @@ export default function Sidebar() {
     dataKebimasislaman: pathname.startsWith('/admin/kebimasislaman'),
     manajemen: true,
   });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const kat = params.get('kategori');
+      if (kat) {
+        setActiveKategoriParam(kat);
+      } else if (pathname.startsWith('/admin/kebimasislaman')) {
+        setActiveKategoriParam('masjid_mushalla');
+      }
+    }
+  }, [pathname]);
 
   useEffect(() => {
     async function initSidebar() {
@@ -80,6 +102,11 @@ export default function Sidebar() {
   const isAdminKua = activeMode === 'admin_kua';
   const isAdminBimas = activeMode === 'admin_bimas';
   const isSuperAdmin = activeMode === 'super_admin';
+  const canSeeSensitiveKebimas = isSuperAdmin || isAdminBimas;
+
+  const visibleKebimasSubmenus = KEBIMAS_SUBMENUS.filter((item) =>
+    item.adminOnly ? canSeeSensitiveKebimas : true
+  );
 
   const renderMenuItems = (onItemClick?: () => void) => {
     if (loadingRole) {
@@ -214,17 +241,28 @@ export default function Sidebar() {
             </button>
             {openMenus.dataKebimasislaman && (
               <div className="ml-4 pl-4 mt-1 border-l border-emerald-800/80 space-y-1">
-                <Link
-                  href="/admin/kebimasislaman"
-                  onClick={onItemClick}
-                  className={`block px-3 py-2 rounded-lg text-xs transition ${
-                    pathname.startsWith('/admin/kebimasislaman')
-                      ? 'bg-emerald-600 text-white font-bold shadow-md'
-                      : 'text-emerald-300/80 hover:bg-emerald-800/40 hover:text-white'
-                  }`}
-                >
-                  • Kelola Data Kebimasislaman
-                </Link>
+                {visibleKebimasSubmenus.map((sub) => {
+                  const isSubActive =
+                    pathname.startsWith('/admin/kebimasislaman') &&
+                    activeKategoriParam === sub.key;
+                  return (
+                    <Link
+                      key={sub.key}
+                      href={`/admin/kebimasislaman?kategori=${sub.key}`}
+                      onClick={() => {
+                        setActiveKategoriParam(sub.key);
+                        onItemClick?.();
+                      }}
+                      className={`block px-3 py-2 rounded-lg text-xs transition ${
+                        isSubActive
+                          ? 'bg-emerald-600 text-white font-bold shadow-md'
+                          : 'text-emerald-300/80 hover:bg-emerald-800/40 hover:text-white'
+                      }`}
+                    >
+                      • {sub.label}
+                    </Link>
+                  );
+                })}
               </div>
             )}
           </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import Sidebar from '@/src/components/Sidebar';
@@ -23,6 +23,7 @@ interface TabConfig {
   label: string;
   shortLabel: string;
   icon: string;
+  description: string;
   namaLabel: string;
   namaPlaceholder: string;
   pjLabel: string;
@@ -41,6 +42,7 @@ const TAB_CONFIGS: TabConfig[] = [
     label: 'Masjid & Mushalla',
     shortLabel: 'Masjid/Mushalla',
     icon: '🕌',
+    description: 'Pendataan profil, tipologi, pengurus DKM, dan status Masjid serta Mushalla.',
     namaLabel: 'Nama Masjid / Mushalla',
     namaPlaceholder: 'Contoh: Masjid Agung Baiturrahim',
     pjLabel: 'Ketua DKM / Pengurus',
@@ -56,6 +58,7 @@ const TAB_CONFIGS: TabConfig[] = [
     label: 'Arah Kiblat Masjid & Mushalla',
     shortLabel: 'Arah Kiblat',
     icon: '🧭',
+    description: 'Pencatatan hasil pengukuran arah kiblat, deviasi sudut, dan rujukan layanan PTSP.',
     namaLabel: 'Nama Masjid / Mushalla yang Diukur',
     namaPlaceholder: 'Contoh: Mushalla Al-Hidayah Marisa',
     pjLabel: 'Petugas Pengukur / Tim Hisab Rukyat',
@@ -71,6 +74,7 @@ const TAB_CONFIGS: TabConfig[] = [
     label: 'Ormas Islam',
     shortLabel: 'Ormas Islam',
     icon: '🤝',
+    description: 'Pendataan Organisasi Kemasyarakatan Islam, kepengurusan, dan legalitas.',
     namaLabel: 'Nama Organisasi Kemasyarakatan Islam',
     namaPlaceholder: 'Contoh: Pengurus Cabang ...',
     pjLabel: 'Ketua / Penanggung Jawab',
@@ -86,6 +90,7 @@ const TAB_CONFIGS: TabConfig[] = [
     label: 'Paham Aliran Keagamaan',
     shortLabel: 'Paham Keagamaan',
     icon: '🛡️',
+    description: 'Pemantauan dan pembinaan paham/aliran keagamaan secara terkoordinasi.',
     namaLabel: 'Nama Paham / Kelompok / Komunitas',
     namaPlaceholder: 'Nama kelompok / paham yang dipantau',
     pjLabel: 'Tokoh / Penanggung Jawab / Koordinator',
@@ -102,6 +107,7 @@ const TAB_CONFIGS: TabConfig[] = [
     label: 'Majelis Taklim',
     shortLabel: 'Majelis Taklim',
     icon: '📖',
+    description: 'Pendataan Majelis Taklim, pimpinan/ustaz, jadwal pengajian, dan jamaah.',
     namaLabel: 'Nama Majelis Taklim',
     namaPlaceholder: 'Contoh: Majelis Taklim Nurul Iman',
     pjLabel: 'Pimpinan / Ustaz / Ketua Pengurus',
@@ -117,6 +123,7 @@ const TAB_CONFIGS: TabConfig[] = [
     label: 'Data Lain',
     shortLabel: 'Data Lain',
     icon: '🗂️',
+    description: 'Pendataan tambahan Kebimasislaman sesuai kebutuhan layanan dan pengembangan modul.',
     namaLabel: 'Judul / Nama Data Kebimasislaman',
     namaPlaceholder: 'Nama entitas / program / pendataan tambahan',
     pjLabel: 'Penanggung Jawab / Pengelola',
@@ -128,6 +135,11 @@ const TAB_CONFIGS: TabConfig[] = [
     statusOptions: ['Terverifikasi', 'Terdaftar', 'Dalam Pemantauan'],
   },
 ];
+
+const parseKategoriParam = (raw: string | null): KebimasKategori | null => {
+  if (!raw) return null;
+  return TAB_CONFIGS.some((t) => t.key === raw) ? (raw as KebimasKategori) : null;
+};
 
 export default function KebimasislamanPage() {
   const router = useRouter();
@@ -180,10 +192,44 @@ export default function KebimasislamanPage() {
     return TAB_CONFIGS.filter((t) => (!t.adminOnly ? true : canSeeSensitive));
   }, [activeMode]);
 
+  const selectKategori = useCallback(
+    (kat: KebimasKategori, updateUrl = true) => {
+      setActiveTab(kat);
+      setSelectedStatus('ALL');
+      if (updateUrl && typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.set('kategori', kat);
+        window.history.replaceState({}, '', url.toString());
+      }
+    },
+    []
+  );
+
   const triggerToast = (type: 'success' | 'error', title: string, message: string) => {
     setToast({ type, title, message });
     setTimeout(() => setToast(null), 6000);
   };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const initialKat = parseKategoriParam(params.get('kategori'));
+    if (initialKat) {
+      setActiveTab(initialKat);
+    }
+
+    const handlePopState = () => {
+      const nextParams = new URLSearchParams(window.location.search);
+      const nextKat = parseKategoriParam(nextParams.get('kategori'));
+      if (nextKat) {
+        setActiveTab(nextKat);
+        setSelectedStatus('ALL');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   useEffect(() => {
     async function init() {
@@ -218,11 +264,10 @@ export default function KebimasislamanPage() {
   }, [router]);
 
   useEffect(() => {
-    if (!visibleTabs.some((t) => t.key === activeTab) && visibleTabs.length > 0) {
-      setActiveTab(visibleTabs[0].key);
+    if (visibleTabs.length > 0 && !visibleTabs.some((t) => t.key === activeTab)) {
+      selectKategori(visibleTabs[0].key, true);
     }
-    setSelectedStatus('ALL');
-  }, [visibleTabs, activeTab]);
+  }, [visibleTabs, activeTab, selectKategori]);
 
   async function loadKecamatanOptions() {
     const { data: kecData } = await supabase
@@ -528,14 +573,18 @@ export default function KebimasislamanPage() {
           )}
 
           <div className="max-w-7xl mx-auto">
-            {/* HEADER HALAMAN */}
+            {/* HEADER HALAMAN SESUAI SUB-MENU AKTIF */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                  Layanan & Data Kebimasislaman
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 mb-1.5">
+                  <span>📖 Data Kebimasislaman</span>
+                </div>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <span>{currentTabConfig.icon}</span>
+                  <span>{currentTabConfig.label}</span>
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-600 mt-1">
-                  Pengelolaan data Masjid & Mushalla, Arah Kiblat, Ormas Islam, Majelis Taklim, dan referensi pendukung PTSP
+                  {currentTabConfig.description}
                 </p>
               </div>
 
@@ -549,7 +598,7 @@ export default function KebimasislamanPage() {
               </button>
             </div>
 
-            {/* TAB KATEGORI KEBIMASISLAMAN */}
+            {/* BAR SUB-MENU / KATEGORI KEBIMASISLAMAN */}
             <div className="flex items-center gap-2 border-b border-gray-200 mb-6 overflow-x-auto pb-0.5">
               {visibleTabs.map((tab) => {
                 const isActive = activeTab === tab.key;
@@ -557,7 +606,7 @@ export default function KebimasislamanPage() {
                   <button
                     key={tab.key}
                     type="button"
-                    onClick={() => setActiveTab(tab.key)}
+                    onClick={() => selectKategori(tab.key, true)}
                     className={`pb-3 px-3 sm:px-4 text-xs sm:text-sm font-bold transition border-b-2 whitespace-nowrap flex items-center gap-1.5 ${
                       isActive
                         ? 'border-emerald-600 text-emerald-700'
