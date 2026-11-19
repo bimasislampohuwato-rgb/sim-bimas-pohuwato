@@ -20,7 +20,7 @@ export default function Sidebar() {
     layananPublik: true,
     layananInternal: false,
     kepegawaian: true,
-    dataKebimasislaman: false,
+    dataKebimasislaman: pathname.startsWith('/admin/kebimasislaman'),
     manajemen: true,
   });
 
@@ -67,6 +67,9 @@ export default function Sidebar() {
 
   useEffect(() => {
     setMoreOpen(false);
+    if (pathname.startsWith('/admin/kebimasislaman')) {
+      setOpenMenus((prev) => ({ ...prev, dataKebimasislaman: true }));
+    }
   }, [pathname]);
 
   const toggleMenu = (menuKey: string) => {
@@ -211,7 +214,17 @@ export default function Sidebar() {
             </button>
             {openMenus.dataKebimasislaman && (
               <div className="ml-4 pl-4 mt-1 border-l border-emerald-800/80 space-y-1">
-                <a href="#" onClick={onItemClick} className="block px-3 py-2 rounded-lg text-xs text-emerald-300/80 hover:bg-emerald-800/40 hover:text-white transition">• Masjid & Mushalla</a>
+                <Link
+                  href="/admin/kebimasislaman"
+                  onClick={onItemClick}
+                  className={`block px-3 py-2 rounded-lg text-xs transition ${
+                    pathname.startsWith('/admin/kebimasislaman')
+                      ? 'bg-emerald-600 text-white font-bold shadow-md'
+                      : 'text-emerald-300/80 hover:bg-emerald-800/40 hover:text-white'
+                  }`}
+                >
+                  • Kelola Data Kebimasislaman
+                </Link>
               </div>
             )}
           </div>

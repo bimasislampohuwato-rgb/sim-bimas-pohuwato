@@ -13,6 +13,37 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const NEEDS_ACTION_STATUSES = ['Menunggu Verifikasi', 'Diproses'];
 
+const KEBIMAS_CATEGORY_OPTIONS = [
+  { value: 'arah_kiblat', label: '🧭 Arah Kiblat Masjid & Mushalla' },
+  { value: 'masjid_mushalla', label: '🕌 Masjid & Mushalla' },
+  { value: 'ormas_islam', label: '🤝 Ormas Islam' },
+  { value: 'majelis_taklim', label: '📖 Majelis Taklim' },
+  { value: 'data_lain', label: '🗂️ Data Lain' },
+];
+
+const detectKebimasCategory = (jenisLayanan?: string): string => {
+  const text = (jenisLayanan || '').toLowerCase();
+  if (text.includes('kiblat')) return 'arah_kiblat';
+  if (text.includes('masjid') || text.includes('mushalla') || text.includes('mushola')) return 'masjid_mushalla';
+  if (text.includes('ormas') || text.includes('organisasi')) return 'ormas_islam';
+  if (text.includes('majelis') || text.includes('taklim') || text.includes('pengajian')) return 'majelis_taklim';
+  return 'arah_kiblat';
+};
+
+const shouldAutoSyncKebimas = (jenisLayanan?: string): boolean => {
+  const text = (jenisLayanan || '').toLowerCase();
+  return (
+    text.includes('kiblat') ||
+    text.includes('masjid') ||
+    text.includes('mushalla') ||
+    text.includes('mushola') ||
+    text.includes('ormas') ||
+    text.includes('majelis') ||
+    text.includes('taklim') ||
+    text.includes('kebimas')
+  );
+};
+
 export default function AdminPtspPage() {
   const router = useRouter();
   const [permohonanList, setPermohonanList] = useState<any[]>([]);
@@ -35,6 +66,13 @@ export default function AdminPtspPage() {
   const [petugasDitunjuk, setPetugasDitunjuk] = useState('');
   const [noHpPetugas, setNoHpPetugas] = useState('');
   const [linkSuratTugas, setLinkSuratTugas] = useState('');
+
+  // Integrasi / Sinkronisasi ke Data Kebimasislaman
+  const [syncKebimas, setSyncKebimas] = useState(false);
+  const [kebimasKategori, setKebimasKategori] = useState('arah_kiblat');
+  const [kebimasNamaObjek, setKebimasNamaObjek] = useState('');
+  const [kebimasKecamatan, setKebimasKecamatan] = useState('');
+  const [kebimasHasilInfo, setKebimasHasilInfo] = useState('');
 
   const [processing, setProcessing] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
@@ -198,7 +236,77 @@ export default function AdminPtspPage() {
     setPetugasDitunjuk(item.petugas_ditunjuk || '');
     setNoHpPetugas(item.no_hp_petugas || '');
     setLinkSuratTugas(item.link_surat_tugas || '');
+
+    setSyncKebimas(shouldAutoSyncKebimas(item.jenis_layanan));
+    setKebimasKategori(detectKebimasCategory(item.jenis_layanan));
+    setKebimasNamaObjek(item.keterangan_permohonan || item.nama_pemohon || '');
+    setKebimasKecamatan(item.kecamatan || '');
+    setKebimasHasilInfo('');
     setShowModal(true);
+  };
+
+  const syncToKebimasislaman = async (
+    item: any,
+    petugas: string,
+    suratTugas: string,
+    catatan: string
+  ) => {
+    if (!item?.nomor_tiket) return null;
+
+    const nowIso = new Date().toISOString();
+    const namaFinal =
+      kebimasNamaObjek.trim() ||
+      item.keterangan_permohonan?.trim() ||
+      item.nama_pemohon ||
+      `Layanan ${item.jenis_layanan}`;
+
+    const kebimasPayload: any = {
+      kategori: kebimasKategori,
+      nama_objek: namaFinal,
+      kecamatan: kebimasKecamatan.trim() || null,
+      alamat_lokasi: item.keterangan_permohonan?.trim() || null,
+      penanggung_jawab: petugas.trim() || item.nama_pemohon || null,
+      no_hp: item.no_hp || null,
+      status_data: 'Terverifikasi',
+      tanggal_catatan: nowIso.slice(0, 10),
+      nomor_tiket_ptsp: item.nomor_tiket,
+      link_dokumen: suratTugas.trim() || item.file_lampiran_url || null,
+      catatan_detail:
+        [kebimasHasilInfo.trim(), catatan.trim()]
+          .filter(Boolean)
+          .join(' | ') || `Hasil penyelesaian tiket PTSP ${item.nomor_tiket}`,
+      data_tambahan: {
+        extra1: kebimasHasilInfo.trim() || item.jenis_layanan || '',
+        extra2: `Sumber PTSP: ${item.nomor_tiket}`,
+      },
+      updated_at: nowIso,
+    };
+
+    const { data: existingRows } = await supabase
+      .from('kebimasislaman_data')
+      .select('id')
+      .eq('nomor_tiket_ptsp', item.nomor_tiket)
+      .limit(1);
+
+    if (existingRows && existingRows.length > 0) {
+      const { error: updErr } = await supabase
+        .from('kebimasislaman_data')
+        .update(kebimasPayload)
+        .eq('id', existingRows[0].id);
+      return updErr ? updErr.message : 'diperbarui';
+    }
+
+    kebimasPayload.id =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `kbm_${Date.now()}`;
+    kebimasPayload.created_at = nowIso;
+
+    const { error: insErr } = await supabase
+      .from('kebimasislaman_data')
+      .insert([kebimasPayload]);
+
+    return insErr ? insErr.message : 'tersimpan';
   };
 
   const handleUpdateStatus = async (e: React.FormEvent) => {
@@ -223,13 +331,32 @@ export default function AdminPtspPage() {
       .update(updatePayload)
       .eq('id', selectedItem.id);
 
+    let kebimasSyncMessage = '';
+    if (!error && newStatus === 'Selesai' && syncKebimas) {
+      const syncResult = await syncToKebimasislaman(
+        selectedItem,
+        petugasDitunjuk,
+        linkSuratTugas,
+        catatanAdmin
+      );
+      if (syncResult === 'tersimpan' || syncResult === 'diperbarui') {
+        kebimasSyncMessage = ` & disinkronkan ke Data Kebimasislaman (${selectedItem.nomor_tiket})`;
+      } else if (syncResult) {
+        kebimasSyncMessage = ` (Catatan: sinkronisasi Kebimasislaman gagal: ${syncResult})`;
+      }
+    }
+
     setProcessing(false);
     setShowModal(false);
 
     if (error) {
       triggerToast('error', 'Gagal Memperbarui', error.message);
     } else {
-      triggerToast('success', 'Status Diperbarui', `Permohonan ${selectedItem.nomor_tiket} berhasil diperbarui.`);
+      triggerToast(
+        'success',
+        'Status Diperbarui',
+        `Permohonan ${selectedItem.nomor_tiket} berhasil diperbarui${kebimasSyncMessage}.`
+      );
       loadPermohonan();
 
       // KIRIM NOTIFIKASI EMAIL OTOMATIS JIKA STATUS DIUBAH JADI SELESAI & PEMOHON PUNYA EMAIL
@@ -353,12 +480,20 @@ export default function AdminPtspPage() {
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Kelola Verifikasi PTSP Publik</h1>
                 <p className="text-xs sm:text-sm text-gray-600 mt-1">Verifikasi berkas masuk dan permohonan layanan keagamaan masyarakat</p>
               </div>
-              <Link
-                href="/admin/ptsp/layanan"
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-2 w-full sm:w-auto"
-              >
-                <span>⚙️</span> Kelola Master Jenis Layanan & Persyaratan
-              </Link>
+              <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+                <Link
+                  href="/admin/kebimasislaman"
+                  className="px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition shadow-xs flex items-center justify-center gap-2 flex-1 sm:flex-none"
+                >
+                  <span>🕌</span> Data Kebimasislaman
+                </Link>
+                <Link
+                  href="/admin/ptsp/layanan"
+                  className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-2 flex-1 sm:flex-none"
+                >
+                  <span>⚙️</span> Kelola Master Jenis Layanan & Persyaratan
+                </Link>
+              </div>
             </div>
 
             {/* PANEL PENCARIAN, FILTER BULAN, LAYANAN & PRIORITAS */}
@@ -688,7 +823,7 @@ export default function AdminPtspPage() {
                     </select>
                   </div>
 
-                  {/* FORM KHUSUS JIKA STATUS SELESAI (PENUGASAN) */}
+                  {/* FORM KHUSUS JIKA STATUS SELESAI (PENUGASAN & SINKRONISASI KEBIMASISLAMAN) */}
                   {newStatus === 'Selesai' && (
                     <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-3 animate-fade-in">
                       <div className="text-xs font-bold text-emerald-900 uppercase">📋 Form Tindak Lanjut & Penugasan Resmi</div>
@@ -724,6 +859,83 @@ export default function AdminPtspPage() {
                           placeholder="https://drive.google.com/..."
                           className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs bg-white focus:ring-2 focus:ring-emerald-500"
                         />
+                      </div>
+
+                      {/* BLOK INTEGRASI DATA KEBIMASISLAMAN */}
+                      <div className="pt-3 border-t border-emerald-200 space-y-2.5">
+                        <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={syncKebimas}
+                            onChange={(e) => setSyncKebimas(e.target.checked)}
+                            className="mt-0.5 h-4 w-4 rounded border-emerald-400 text-emerald-600 focus:ring-emerald-500"
+                          />
+                          <span className="text-xs font-bold text-emerald-950 leading-snug">
+                            Catat / Sinkronkan hasil ke Data Kebimasislaman (dengan rujukan tiket {selectedItem.nomor_tiket})
+                          </span>
+                        </label>
+
+                        {syncKebimas && (
+                          <div className="space-y-2.5 pt-1">
+                            <div>
+                              <label className="block text-[11px] font-bold text-emerald-800 mb-1">
+                                Kategori Data Kebimasislaman
+                              </label>
+                              <select
+                                value={kebimasKategori}
+                                onChange={(e) => setKebimasKategori(e.target.value)}
+                                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs bg-white font-semibold focus:ring-2 focus:ring-emerald-500"
+                              >
+                                {KEBIMAS_CATEGORY_OPTIONS.map((opt) => (
+                                  <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              <div>
+                                <label className="block text-[11px] font-bold text-emerald-800 mb-1">
+                                  Nama Objek / Lembaga
+                                </label>
+                                <input
+                                  type="text"
+                                  value={kebimasNamaObjek}
+                                  onChange={(e) => setKebimasNamaObjek(e.target.value)}
+                                  placeholder="Nama masjid / mushalla / ormas"
+                                  className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs bg-white focus:ring-2 focus:ring-emerald-500"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[11px] font-bold text-emerald-800 mb-1">
+                                  Kecamatan
+                                </label>
+                                <input
+                                  type="text"
+                                  value={kebimasKecamatan}
+                                  onChange={(e) => setKebimasKecamatan(e.target.value)}
+                                  placeholder="Contoh: Marisa"
+                                  className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs bg-white focus:ring-2 focus:ring-emerald-500"
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-[11px] font-bold text-emerald-800 mb-1">
+                                Hasil Pengukuran / Ringkasan Data
+                              </label>
+                              <input
+                                type="text"
+                                value={kebimasHasilInfo}
+                                onChange={(e) => setKebimasHasilInfo(e.target.value)}
+                                placeholder="Contoh: Azimuth 292°15' / Sesuai arah kiblat"
+                                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs bg-white focus:ring-2 focus:ring-emerald-500"
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
