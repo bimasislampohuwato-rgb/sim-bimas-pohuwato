@@ -60,7 +60,7 @@ export default function HeaderBar() {
   };
 
   const inisial = profile?.nama_lengkap ? profile.nama_lengkap.charAt(0).toUpperCase() : 'A';
-  
+
   const getModeLabel = (m: string) => {
     if (m === 'super_admin') return '👑 SUPER ADMIN';
     if (m === 'admin_bimas') return '🛡️ ADMIN BIMAS';
@@ -69,15 +69,17 @@ export default function HeaderBar() {
   };
 
   return (
-    <header className="h-20 bg-white border-b border-gray-200 px-6 sm:px-10 flex items-center justify-between sticky top-0 z-40 shadow-xs">
-      <div>
-        <h2 className="text-sm sm:text-base font-bold text-gray-800">
+    <header className="h-16 sm:h-20 bg-white border-b border-gray-200 px-4 sm:px-10 flex items-center justify-between gap-3 sticky top-0 z-30 shadow-xs">
+      <div className="min-w-0 flex-1">
+        <h2 className="text-xs sm:text-base font-bold text-gray-800 truncate">
           Sistem Informasi Manajemen Bimas Islam
         </h2>
-        <p className="text-xs text-gray-500">Kantor Kementerian Agama Kabupaten Pohuwato</p>
+        <p className="text-[11px] sm:text-xs text-gray-500 truncate">
+          Kantor Kementerian Agama Kabupaten Pohuwato
+        </p>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
         {/* Indikator / Switcher Mode Aktif jika punya peran ganda */}
         {profile && (profile.role === 'super_admin' || profile.jabatan_admin) && (
           <div className="hidden md:flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200 text-xs font-bold">
@@ -90,8 +92,9 @@ export default function HeaderBar() {
 
         <div className="relative" ref={dropdownRef}>
           <button
+            type="button"
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center justify-center w-11 h-11 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base shadow-md border-2 border-emerald-200 transition focus:outline-none overflow-hidden"
+            className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm sm:text-base shadow-md border-2 border-emerald-200 transition focus:outline-none overflow-hidden"
             title="Profil Pengguna"
           >
             {profile?.foto_url ? (
@@ -102,9 +105,9 @@ export default function HeaderBar() {
           </button>
 
           {dropdownOpen && (
-            <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-2xl border border-gray-200 py-3 z-50 animate-fade-in">
+            <div className="absolute right-0 mt-3 w-72 sm:w-80 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-gray-200 py-3 z-50 animate-fade-in">
               <div className="px-4 pb-3 border-b border-gray-100 flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-lg overflow-hidden shrink-0 border border-emerald-300">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-base sm:text-lg overflow-hidden shrink-0 border border-emerald-300">
                   {profile?.foto_url ? (
                     <img src={profile.foto_url} alt="Profil" className="w-full h-full object-cover" />
                   ) : (
@@ -124,6 +127,7 @@ export default function HeaderBar() {
                   <div className="space-y-1">
                     {profile.role === 'super_admin' && (
                       <button
+                        type="button"
                         onClick={() => handleSwitchMode('super_admin')}
                         className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-between ${activeMode === 'super_admin' ? 'bg-purple-600 text-white' : 'hover:bg-gray-200 text-gray-700'}`}
                       >
@@ -132,6 +136,7 @@ export default function HeaderBar() {
                     )}
                     {profile.jabatan_admin === 'admin_bimas' && (
                       <button
+                        type="button"
                         onClick={() => handleSwitchMode('admin_bimas')}
                         className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-between ${activeMode === 'admin_bimas' ? 'bg-blue-600 text-white' : 'hover:bg-gray-200 text-gray-700'}`}
                       >
@@ -140,6 +145,7 @@ export default function HeaderBar() {
                     )}
                     {profile.jabatan_admin === 'admin_kua' && (
                       <button
+                        type="button"
                         onClick={() => handleSwitchMode('admin_kua')}
                         className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-between ${activeMode === 'admin_kua' ? 'bg-amber-600 text-white' : 'hover:bg-gray-200 text-gray-700'}`}
                       >
@@ -147,6 +153,7 @@ export default function HeaderBar() {
                       </button>
                     )}
                     <button
+                      type="button"
                       onClick={() => handleSwitchMode('pegawai')}
                       className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-between ${activeMode === 'pegawai' ? 'bg-emerald-600 text-white' : 'hover:bg-gray-200 text-gray-700'}`}
                     >
@@ -155,9 +162,10 @@ export default function HeaderBar() {
                   </div>
                 </div>
               )}
-              
+
               <div className="py-1">
                 <button
+                  type="button"
                   onClick={() => { setDropdownOpen(false); router.push('/akun'); }}
                   className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition"
                 >
@@ -167,6 +175,7 @@ export default function HeaderBar() {
 
               <div className="border-t border-gray-100 pt-1">
                 <button
+                  type="button"
                   onClick={handleLogout}
                   className="w-full text-left px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition"
                 >
