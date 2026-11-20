@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -13,13 +13,20 @@ const MASJID_NESTED_MENUS = [
   { key: 'masjid', label: 'Data Masjid (SIMAS)' },
   { key: 'sdm_masjid', label: 'SDM Masjid' },
   { key: 'arah_kiblat', label: 'Arah Kiblat' },
-];
+] as const;
 
-export default function Sidebar() {
+type MasjidMenuKey = (typeof MASJID_NESTED_MENUS)[number]['key'];
+
+function isMasjidMenuKey(val: string | null): val is MasjidMenuKey {
+  return val === 'masjid' || val === 'sdm_masjid' || val === 'arah_kiblat';
+}
+
+function SidebarContent() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [logoUrl, setLogoUrl] = useState('');
   const [activeMode, setActiveMode] = useState<string>('pegawai');
-  const [activeSubMenu, setActiveSubMenu] = useState<string>('masjid');
+  const [activeSubMenu, setActiveSubMenu] = useState<MasjidMenuKey>('masjid');
   const [loadingRole, setLoadingRole] = useState(true);
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -33,20 +40,40 @@ export default function Sidebar() {
   });
 
   useEffect(() => {
+    const queryMenu = searchParams?.get('menu') || null;
+    if (isMasjidMenuKey(queryMenu)) {
+      setActiveSubMenu(queryMenu);
+      return;
+    }
+    if (typeof window !== 'undefined') {
+      const winMenu = new URLSearchParams(window.location.search).get('menu');
+      if (isMasjidMenuKey(winMenu)) {
+        setActiveSubMenu(winMenu);
+        return;
+      }
+    }
+    if (pathname.startsWith('/admin/kebimasislaman')) {
+      setActiveSubMenu('masjid');
+    }
+  }, [pathname, searchParams]);
+
+  useEffect(() => {
     if (typeof window === 'undefined') return;
-    const syncMenuQuery = () => {
-      const params = new URLSearchParams(window.location.search);
-      const menuParam = params.get('menu');
-      if (menuParam && MASJID_NESTED_MENUS.some((m) => m.key === menuParam)) {
-        setActiveSubMenu(menuParam);
-      } else if (pathname.startsWith('/admin/kebimasislaman')) {
-        setActiveSubMenu('masjid');
+    const handleMenuSync = (ev: Event) => {
+      const customEv = ev as CustomEvent<{ menu?: string }>;
+      const nextMenu =
+        customEv.detail?.menu || new URLSearchParams(window.location.search).get('menu');
+      if (isMasjidMenuKey(nextMenu)) {
+        setActiveSubMenu(nextMenu);
       }
     };
-    syncMenuQuery();
-    window.addEventListener('popstate', syncMenuQuery);
-    return () => window.removeEventListener('popstate', syncMenuQuery);
-  }, [pathname]);
+    window.addEventListener('kebimasislaman:menu-change', handleMenuSync);
+    window.addEventListener('popstate', handleMenuSync);
+    return () => {
+      window.removeEventListener('kebimasislaman:menu-change', handleMenuSync);
+      window.removeEventListener('popstate', handleMenuSync);
+    };
+  }, []);
 
   useEffect(() => {
     async function initSidebar() {
@@ -64,7 +91,9 @@ export default function Sidebar() {
         setActiveMode(savedMode);
         setLoadingRole(false);
       } else {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (user) {
           const { data: prof } = await supabase
             .from('profiles')
@@ -100,6 +129,24 @@ export default function Sidebar() {
 
   const toggleMenu = (menuKey: string) => {
     setOpenMenus((prev) => ({ ...prev, [menuKey]: !prev[menuKey] }));
+  };
+
+  const handleSelectNestedMenu = (menuKey: MasjidMenuKey, onItemClick?: () => void) => {
+    setActiveSubMenu(menuKey);
+    setOpenMenus((prev) => ({
+      ...prev,
+      dataKebimasislaman: true,
+      masjidNested: true,
+    }));
+    if (typeof window !== 'undefined' && pathname === '/admin/kebimasislaman') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('menu', menuKey);
+      window.history.replaceState({}, '', url.toString());
+      window.dispatchEvent(
+        new CustomEvent('kebimasislaman:menu-change', { detail: { menu: menuKey } })
+      );
+    }
+    onItemClick?.();
   };
 
   const isPegawaiMode = activeMode === 'pegawai';
@@ -146,7 +193,13 @@ export default function Sidebar() {
                 <span className="text-base">📄</span>
                 <span>Layanan Publik (PTSP)</span>
               </div>
-              <span className={`text-[10px] transition-transform ${openMenus.layananPublik ? 'rotate-180' : ''}`}>▼</span>
+              <span
+                className={`text-[10px] transition-transform ${
+                  openMenus.layananPublik ? 'rotate-180' : ''
+                }`}
+              >
+                ▼
+              </span>
             </button>
             {openMenus.layananPublik && (
               <div className="ml-4 pl-4 mt-1 border-l border-emerald-800/80 space-y-1">
@@ -178,13 +231,37 @@ export default function Sidebar() {
                 <span className="text-base">🏛️</span>
                 <span>Layanan Internal (KUA)</span>
               </div>
-              <span className={`text-[10px] transition-transform ${openMenus.layananInternal ? 'rotate-180' : ''}`}>▼</span>
+              <span
+                className={`text-[10px] transition-transform ${
+                  openMenus.layananInternal ? 'rotate-180' : ''
+                }`}
+              >
+                ▼
+              </span>
             </button>
             {openMenus.layananInternal && (
               <div className="ml-4 pl-4 mt-1 border-l border-emerald-800/80 space-y-1">
-                <a href="#" onClick={onItemClick} className="block px-3 py-2 rounded-lg text-xs text-emerald-300/80 hover:bg-emerald-800/40 hover:text-white transition">• Permohonan Buku Nikah</a>
-                <a href="#" onClick={onItemClick} className="block px-3 py-2 rounded-lg text-xs text-emerald-300/80 hover:bg-emerald-800/40 hover:text-white transition">• Permohonan Blangko N</a>
-                <a href="#" onClick={onItemClick} className="block px-3 py-2 rounded-lg text-xs text-emerald-300/80 hover:bg-emerald-800/40 hover:text-white transition">• Permohonan Blangko NB</a>
+                <a
+                  href="#"
+                  onClick={onItemClick}
+                  className="block px-3 py-2 rounded-lg text-xs text-emerald-300/80 hover:bg-emerald-800/40 hover:text-white transition"
+                >
+                  • Permohonan Buku Nikah
+                </a>
+                <a
+                  href="#"
+                  onClick={onItemClick}
+                  className="block px-3 py-2 rounded-lg text-xs text-emerald-300/80 hover:bg-emerald-800/40 hover:text-white transition"
+                >
+                  • Permohonan Blangko N
+                </a>
+                <a
+                  href="#"
+                  onClick={onItemClick}
+                  className="block px-3 py-2 rounded-lg text-xs text-emerald-300/80 hover:bg-emerald-800/40 hover:text-white transition"
+                >
+                  • Permohonan Blangko NB
+                </a>
               </div>
             )}
           </div>
@@ -201,7 +278,13 @@ export default function Sidebar() {
               <span className="text-base">{isPegawaiMode ? '🪪' : '👥'}</span>
               <span>Kepegawaian</span>
             </div>
-            <span className={`text-[10px] transition-transform ${openMenus.kepegawaian ? 'rotate-180' : ''}`}>▼</span>
+            <span
+              className={`text-[10px] transition-transform ${
+                openMenus.kepegawaian ? 'rotate-180' : ''
+              }`}
+            >
+              ▼
+            </span>
           </button>
           {openMenus.kepegawaian && (
             <div className="ml-4 pl-4 mt-1 border-l border-emerald-800/80 space-y-1">
@@ -236,7 +319,13 @@ export default function Sidebar() {
                 <span className="text-base">📖</span>
                 <span>Data Kebimasislaman</span>
               </div>
-              <span className={`text-[10px] transition-transform ${openMenus.dataKebimasislaman ? 'rotate-180' : ''}`}>▼</span>
+              <span
+                className={`text-[10px] transition-transform ${
+                  openMenus.dataKebimasislaman ? 'rotate-180' : ''
+                }`}
+              >
+                ▼
+              </span>
             </button>
 
             {openMenus.dataKebimasislaman && (
@@ -251,7 +340,13 @@ export default function Sidebar() {
                   }`}
                 >
                   <span>• Masjid & Mushalla</span>
-                  <span className={`text-[9px] transition-transform ${openMenus.masjidNested ? 'rotate-180' : ''}`}>▼</span>
+                  <span
+                    className={`text-[9px] transition-transform ${
+                      openMenus.masjidNested ? 'rotate-180' : ''
+                    }`}
+                  >
+                    ▼
+                  </span>
                 </button>
 
                 {openMenus.masjidNested && (
@@ -264,10 +359,7 @@ export default function Sidebar() {
                         <Link
                           key={sub.key}
                           href={`/admin/kebimasislaman?menu=${sub.key}`}
-                          onClick={() => {
-                            setActiveSubMenu(sub.key);
-                            onItemClick?.();
-                          }}
+                          onClick={() => handleSelectNestedMenu(sub.key, onItemClick)}
                           className={`block px-2.5 py-1.5 rounded-lg text-[11px] transition ${
                             isActive
                               ? 'bg-emerald-600 text-white font-bold shadow-sm'
@@ -297,7 +389,13 @@ export default function Sidebar() {
                 <span className="text-base">⚙️</span>
                 <span>Manajemen</span>
               </div>
-              <span className={`text-[10px] transition-transform ${openMenus.manajemen ? 'rotate-180' : ''}`}>▼</span>
+              <span
+                className={`text-[10px] transition-transform ${
+                  openMenus.manajemen ? 'rotate-180' : ''
+                }`}
+              >
+                ▼
+              </span>
             </button>
             {openMenus.manajemen && (
               <div className="ml-4 pl-4 mt-1 border-l border-emerald-800/80 space-y-1">
@@ -342,7 +440,6 @@ export default function Sidebar() {
     );
   };
 
-  // Menu Utama untuk Bottom Nav di HP (tanpa menu Akun; PTSP disembunyikan di Mode Pegawai)
   const primaryMobileItems = isPegawaiMode
     ? [
         {
@@ -373,7 +470,6 @@ export default function Sidebar() {
     <>
       {/* SIDEBAR DESKTOP */}
       <aside className="hidden md:flex w-72 bg-[#062e21] text-emerald-100 flex-col h-screen sticky top-0 border-r border-emerald-900/50 shadow-xl select-none font-sans shrink-0">
-        {/* HEADER / LOGO INSTANSI DINAMIS */}
         <div className="p-5 border-b border-emerald-900/60 bg-[#042217]/60">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-xl bg-emerald-700 text-white font-bold flex items-center justify-center text-lg shadow-inner border border-emerald-500/30 overflow-hidden shrink-0">
@@ -394,12 +490,10 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* MENU NAVIGASI UTAMA */}
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5 custom-scrollbar">
           {renderMenuItems()}
         </div>
 
-        {/* FOOTER SIDEBAR */}
         <div className="p-4 border-t border-emerald-900/60 bg-[#042217]/40 text-center">
           <p className="text-[10px] text-emerald-400/70 font-medium">
             SIM Bimas Islam Kab. Pohuwato <br /> © 2026 Kemenag RI
@@ -492,5 +586,13 @@ export default function Sidebar() {
         </div>
       )}
     </>
+  );
+}
+
+export default function Sidebar() {
+  return (
+    <Suspense fallback={null}>
+      <SidebarContent />
+    </Suspense>
   );
 }

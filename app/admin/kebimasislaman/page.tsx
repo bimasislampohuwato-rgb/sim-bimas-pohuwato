@@ -1,20 +1,17 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import * as XLSX from 'xlsx';
 import { createClient } from '@supabase/supabase-js';
 import Sidebar from '@/src/components/Sidebar';
 import HeaderBar from '@/src/components/HeaderBar';
+import type { PejabatUtamaItem } from './ArahKiblatTab';
 import MasjidMushallaTab, {
   type MasjidMushallaItem,
   type JenisLembagaMasjid,
 } from './MasjidMushallaTab';
 import SdmMasjidTab, { type SdmDataItem } from './SdmMasjidTab';
-import ArahKiblatTab, {
-  type KiblatDataItem,
-  type PejabatUtamaItem,
-} from './ArahKiblatTab';
+import ArahKiblatTab, { type KiblatDataItem } from './ArahKiblatTab';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -110,7 +107,6 @@ function readCell(row: Record<string, any>, keys: string[]): string {
 }
 
 export default function KebimasislamanPage() {
-  const router = useRouter();
   const [activeMode, setActiveMode] = useState<string>('pegawai');
   const [kuaKecamatanLock, setKuaKecamatanLock] = useState<string | null>(null);
   const [activeSubMenu, setActiveSubMenu] = useState<MasjidSubMenuKey>('masjid');
@@ -143,11 +139,23 @@ export default function KebimasislamanPage() {
     []
   );
 
+  const selectSubMenu = useCallback((key: MasjidSubMenuKey) => {
+    setActiveSubMenu(key);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('menu', key);
+      window.history.replaceState({}, '', url.toString());
+      window.dispatchEvent(
+        new CustomEvent('kebimasislaman:menu-change', { detail: { menu: key } })
+      );
+    }
+  }, []);
+
   useEffect(() => {
     try {
-      const savedMode = localStorage.getItem('activeRoleMode') || 'pegawai';
+      const savedMode = localStorage.getItem('active_mode') || localStorage.getItem('activeRoleMode') || 'pegawai';
       setActiveMode(savedMode);
-      const savedKec = localStorage.getItem('kuaKecamatan') || '';
+      const savedKec = localStorage.getItem('kuaKecamatan') || localStorage.getItem('kua_wilayah') || '';
       if (savedMode === 'admin_kua' && savedKec.trim()) {
         setKuaKecamatanLock(savedKec.trim());
       } else {
@@ -155,6 +163,24 @@ export default function KebimasislamanPage() {
       }
     } catch {
       // ignore storage errors
+    }
+
+    if (typeof window !== 'undefined') {
+      const syncFromQuery = (ev?: Event) => {
+        const customEv = ev as CustomEvent<{ menu?: string }> | undefined;
+        const menuParam =
+          customEv?.detail?.menu || new URLSearchParams(window.location.search).get('menu');
+        if (menuParam === 'masjid' || menuParam === 'sdm_masjid' || menuParam === 'arah_kiblat') {
+          setActiveSubMenu(menuParam);
+        }
+      };
+      syncFromQuery();
+      window.addEventListener('popstate', syncFromQuery);
+      window.addEventListener('kebimasislaman:menu-change', syncFromQuery);
+      return () => {
+        window.removeEventListener('popstate', syncFromQuery);
+        window.removeEventListener('kebimasislaman:menu-change', syncFromQuery);
+      };
     }
   }, []);
 
@@ -400,9 +426,9 @@ export default function KebimasislamanPage() {
               no_hp_ketua: readCell(row, ['no_hp_ketua', 'No HP Ketua']),
               nama_sekretaris: readCell(row, ['nama_sekretaris', 'Nama Sekretaris']),
               no_hp_sekretaris: readCell(row, ['no_hp_sekretaris', 'No HP Sekretaris']),
-              daftar_imam: readCell(row, ['daftar_imam', 'Imam']),
-              daftar_khatib: readCell(row, ['daftar_khatib', 'Khatib']),
-              daftar_muazin: readCell(row, ['daftar_muazin', 'Muazin']),
+              daftar_imam: splitListField(readCell(row, ['daftar_imam', 'Imam'])),
+              daftar_khatib: splitListField(readCell(row, ['daftar_khatib', 'Khatib'])),
+              daftar_muazin: splitListField(readCell(row, ['daftar_muazin', 'Muazin'])),
               jumlah_remaja: Number(readCell(row, ['jumlah_remaja', 'Jumlah Remaja']) || 0),
               ketua_remaja: readCell(row, ['ketua_remaja', 'Ketua Remaja']),
               kategori_jamaah: readCell(row, ['kategori_jamaah', 'Kategori Jamaah']) || '50 - 100',
@@ -470,11 +496,7 @@ export default function KebimasislamanPage() {
       setImportMode(null);
       setImportRowsPreview([]);
       setImportFileName('');
-      triggerToast(
-        'success',
-        'Import Berhasil',
-        `${importRowsPreview.length} baris data berhasil diproses.`
-      );
+      triggerToast('success', 'Import Berhasil', `${importRowsPreview.length} baris data berhasil diproses.`);
       await loadAllData();
     } catch (err: any) {
       triggerToast('error', 'Gagal Import Excel', err?.message || 'Terjadi kesalahan saat import.');
@@ -485,31 +507,10 @@ export default function KebimasislamanPage() {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-gray-50 text-gray-900">
-      <div className="hidden">
-        <Sidebar {...({ activeMenu: 'kebimasislaman' } as any)} />
-      </div>
+      <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900">Kebimasislaman</h1>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Pengelolaan Data Masjid &amp; Mushalla SIMAS, SDM Keagamaan, dan Kalibrasi Arah Kiblat
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => router.push('/')}
-              className="px-3.5 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700"
-            >
-              Ganti Peran ({activeMode})
-            </button>
-          </div>
-        </header>
-        <div className="hidden">
-          <HeaderBar {...({ title: 'Kebimasislaman' } as any)} />
-        </div>
+        <HeaderBar />
 
         {toast && (
           <div className="fixed bottom-5 right-5 z-50 max-w-sm bg-white border border-gray-200 rounded-2xl shadow-xl p-4 flex items-start gap-3">
@@ -525,15 +526,20 @@ export default function KebimasislamanPage() {
           </div>
         )}
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-5">
-          {kuaKecamatanLock && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 text-xs text-emerald-900 flex items-center justify-between gap-2">
-              <span>
-                Mode <strong>Admin KUA</strong> aktif — data otomatis difokuskan ke Kecamatan{' '}
-                <strong>{kuaKecamatanLock}</strong>.
-              </span>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 max-w-7xl w-full mx-auto space-y-5">
+          <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900">Kebimasislaman</h1>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Pengelolaan Data Masjid &amp; Mushalla SIMAS, SDM Keagamaan, dan Kalibrasi Arah Kiblat
+              </p>
             </div>
-          )}
+            {kuaKecamatanLock && (
+              <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-900">
+                Admin KUA: <strong>{kuaKecamatanLock}</strong>
+              </span>
+            )}
+          </div>
 
           {/* Navigasi Sub-Menu */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -543,7 +549,7 @@ export default function KebimasislamanPage() {
                 <button
                   key={item.key}
                   type="button"
-                  onClick={() => setActiveSubMenu(item.key)}
+                  onClick={() => selectSubMenu(item.key)}
                   className={`text-left p-4 rounded-2xl border transition flex items-start gap-3.5 ${
                     active
                       ? 'bg-emerald-700 text-white border-emerald-700 shadow-md'

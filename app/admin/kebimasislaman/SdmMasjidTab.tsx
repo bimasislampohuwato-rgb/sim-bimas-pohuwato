@@ -50,7 +50,7 @@ interface SdmMasjidTabProps {
   onDownloadTemplateSdm: () => void;
 }
 
-const JAMAAH_OPTIONS = ['50 - 100', '100 - 150', '150 - 200', '200 - 1000', '> 1000'];
+const KATEGORI_JAMAAH_OPTIONS = ['< 50', '50 - 100', '100 - 200', '200 - 1000', '> 1000'];
 
 function detectJenisLembaga(m: SdmMasjidItem): JenisLembagaSdm {
   if (m.jenis_lembaga === 'MUSHALLA' || m.jenis_lembaga === 'MASJID') {
@@ -60,6 +60,18 @@ function detectJenisLembaga(m: SdmMasjidItem): JenisLembagaSdm {
   const s2 = String(m.id_baru_simas || '').trim();
   if (s1.startsWith('02.') || s2.startsWith('02.')) return 'MUSHALLA';
   return 'MASJID';
+}
+
+function parseListInput(raw: string): string[] {
+  return raw
+    .split(/[,;\n]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function formatListDisplay(arr?: string[] | null): string {
+  if (!arr || arr.length === 0) return '-';
+  return arr.join(', ');
 }
 
 export default function SdmMasjidTab({
@@ -76,23 +88,20 @@ export default function SdmMasjidTab({
   const [searchQuery, setSearchQuery] = useState('');
   const [filterJenis, setFilterJenis] = useState<'ALL' | JenisLembagaSdm>('ALL');
   const [filterKecamatan, setFilterKecamatan] = useState('ALL');
-  const [filterJamaah, setFilterJamaah] = useState('ALL');
+  const [filterStatusSdm, setFilterStatusSdm] = useState<'ALL' | 'SUDAH' | 'BELUM'>('ALL');
+  const [filterKategoriJamaah, setFilterKategoriJamaah] = useState('ALL');
 
-  // State Modal Form SDM
   const [showModal, setShowModal] = useState(false);
   const [selectedMasjidId, setSelectedMasjidId] = useState('');
-  const [jumlahPengurus, setJumlahPengurus] = useState<number>(0);
+  const [jumlahPengurus, setJumlahPengurus] = useState('0');
   const [ketuaPengurus, setKetuaPengurus] = useState('');
   const [noHpKetua, setNoHpKetua] = useState('');
   const [namaSekretaris, setNamaSekretaris] = useState('');
   const [noHpSekretaris, setNoHpSekretaris] = useState('');
-  const [imamInput, setImamInput] = useState('');
-  const [imamList, setImamList] = useState<string[]>([]);
-  const [khatibInput, setKhatibInput] = useState('');
-  const [khatibList, setKhatibList] = useState<string[]>([]);
-  const [muazinInput, setMuazinInput] = useState('');
-  const [muazinList, setMuazinList] = useState<string[]>([]);
-  const [jumlahRemaja, setJumlahRemaja] = useState<number>(0);
+  const [daftarImamText, setDaftarImamText] = useState('');
+  const [daftarKhatibText, setDaftarKhatibText] = useState('');
+  const [daftarMuazinText, setDaftarMuazinText] = useState('');
+  const [jumlahRemaja, setJumlahRemaja] = useState('0');
   const [ketuaRemaja, setKetuaRemaja] = useState('');
   const [kategoriJamaah, setKategoriJamaah] = useState('50 - 100');
   const [saving, setSaving] = useState(false);
@@ -105,9 +114,24 @@ export default function SdmMasjidTab({
     );
   };
 
+  const hasSdmRecord = (s?: SdmDataItem): boolean => {
+    if (!s) return false;
+    return Boolean(
+      s.id ||
+        s.ketua_pengurus?.trim() ||
+        s.nama_sekretaris?.trim() ||
+        s.ketua_remaja?.trim() ||
+        (s.jumlah_pengurus || 0) > 0 ||
+        (s.jumlah_remaja || 0) > 0 ||
+        (s.daftar_imam && s.daftar_imam.length > 0) ||
+        (s.daftar_khatib && s.daftar_khatib.length > 0) ||
+        (s.daftar_muazin && s.daftar_muazin.length > 0)
+    );
+  };
+
   const scopedMasjid = useMemo(() => {
     if (!kuaKecamatanLock) return masjidList;
-    const target = kuaKecamatanLock.toLowerCase();
+    const target = kuaKecamatanLock.trim().toLowerCase();
     return masjidList.filter((m) => (m.kecamatan || '').trim().toLowerCase() === target);
   }, [masjidList, kuaKecamatanLock]);
 
@@ -118,43 +142,63 @@ export default function SdmMasjidTab({
     return scopedMasjid.filter((m) => {
       const jenis = detectJenisLembaga(m);
       if (filterJenis !== 'ALL' && jenis !== filterJenis) return false;
+
       if (activeKecamatanFilter !== 'ALL') {
         if ((m.kecamatan || '').trim().toLowerCase() !== activeKecamatanFilter.toLowerCase()) {
           return false;
         }
       }
+
       const s = getSdmForMasjid(m);
-      if (filterJamaah !== 'ALL' && (s?.kategori_jamaah || '50 - 100') !== filterJamaah) {
-        return false;
+      const terdata = hasSdmRecord(s);
+      if (filterStatusSdm === 'SUDAH' && !terdata) return false;
+      if (filterStatusSdm === 'BELUM' && terdata) return false;
+
+      if (filterKategoriJamaah !== 'ALL') {
+        if ((s?.kategori_jamaah || '').trim() !== filterKategoriJamaah) return false;
       }
+
       if (!q) return true;
       return (
         m.nama_masjid.toLowerCase().includes(q) ||
         (m.kecamatan || '').toLowerCase().includes(q) ||
+        (m.alamat || '').toLowerCase().includes(q) ||
+        (m.id_masjid_simas || '').toLowerCase().includes(q) ||
         (s?.ketua_pengurus || '').toLowerCase().includes(q) ||
         (s?.nama_sekretaris || '').toLowerCase().includes(q) ||
-        (s?.daftar_imam || []).some((x) => x.toLowerCase().includes(q)) ||
-        (s?.daftar_khatib || []).some((x) => x.toLowerCase().includes(q)) ||
-        (s?.daftar_muazin || []).some((x) => x.toLowerCase().includes(q))
+        (s?.ketua_remaja || '').toLowerCase().includes(q) ||
+        (s?.daftar_imam || []).join(' ').toLowerCase().includes(q) ||
+        (s?.daftar_khatib || []).join(' ').toLowerCase().includes(q) ||
+        (s?.daftar_muazin || []).join(' ').toLowerCase().includes(q)
       );
     });
-  }, [scopedMasjid, filterJenis, activeKecamatanFilter, filterJamaah, searchQuery, sdmMap]);
+  }, [
+    scopedMasjid,
+    filterJenis,
+    activeKecamatanFilter,
+    filterStatusSdm,
+    filterKategoriJamaah,
+    searchQuery,
+    sdmMap,
+  ]);
 
   const summaryStats = useMemo(() => {
+    const totalLembaga = scopedMasjid.length;
+    let sudahTerdata = 0;
     let totalPengurus = 0;
     let totalRemaja = 0;
-    let terdata = 0;
+
     scopedMasjid.forEach((m) => {
       const s = getSdmForMasjid(m);
-      if (s) {
-        terdata += 1;
-        totalPengurus += Number(s.jumlah_pengurus || 0);
-        totalRemaja += Number(s.jumlah_remaja || 0);
-      }
+      if (hasSdmRecord(s)) sudahTerdata += 1;
+      totalPengurus += Number(s?.jumlah_pengurus || 0);
+      totalRemaja += Number(s?.jumlah_remaja || 0);
     });
+
     return {
-      totalLembaga: scopedMasjid.length,
-      terdata,
+      totalLembaga,
+      sudahTerdata,
+      belumTerdata: Math.max(0, totalLembaga - sudahTerdata),
       totalPengurus,
       totalRemaja,
     };
@@ -163,42 +207,24 @@ export default function SdmMasjidTab({
   const fillFormFromMasjid = (m?: SdmMasjidItem) => {
     const target = m || filteredList[0] || scopedMasjid[0];
     const existing = target ? getSdmForMasjid(target) : undefined;
+
     setSelectedMasjidId(target?.id || '');
-    setJumlahPengurus(Number(existing?.jumlah_pengurus || 0));
+    setJumlahPengurus(String(existing?.jumlah_pengurus ?? 0));
     setKetuaPengurus(existing?.ketua_pengurus || '');
     setNoHpKetua(existing?.no_hp_ketua || '');
     setNamaSekretaris(existing?.nama_sekretaris || '');
     setNoHpSekretaris(existing?.no_hp_sekretaris || '');
-    setImamList(existing?.daftar_imam ? [...existing.daftar_imam] : []);
-    setImamInput('');
-    setKhatibList(existing?.daftar_khatib ? [...existing.daftar_khatib] : []);
-    setKhatibInput('');
-    setMuazinList(existing?.daftar_muazin ? [...existing.daftar_muazin] : []);
-    setMuazinInput('');
-    setJumlahRemaja(Number(existing?.jumlah_remaja || 0));
+    setDaftarImamText((existing?.daftar_imam || []).join(', '));
+    setDaftarKhatibText((existing?.daftar_khatib || []).join(', '));
+    setDaftarMuazinText((existing?.daftar_muazin || []).join(', '));
+    setJumlahRemaja(String(existing?.jumlah_remaja ?? 0));
     setKetuaRemaja(existing?.ketua_remaja || '');
     setKategoriJamaah(existing?.kategori_jamaah || '50 - 100');
   };
 
-  const openModal = (m?: SdmMasjidItem) => {
+  const openCreateOrEdit = (m?: SdmMasjidItem) => {
     fillFormFromMasjid(m);
     setShowModal(true);
-  };
-
-  const addChip = (
-    rawValue: string,
-    currentList: string[],
-    setList: React.Dispatch<React.SetStateAction<string[]>>,
-    setInput: React.Dispatch<React.SetStateAction<string>>
-  ) => {
-    const parts = rawValue
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (parts.length === 0) return;
-    const merged = Array.from(new Set([...currentList, ...parts]));
-    setList(merged);
-    setInput('');
   };
 
   const handleSaveSdm = async (e: React.FormEvent) => {
@@ -209,34 +235,24 @@ export default function SdmMasjidTab({
       return;
     }
 
-    const finalImam = imamInput.trim()
-      ? Array.from(new Set([...imamList, imamInput.trim()]))
-      : imamList;
-    const finalKhatib = khatibInput.trim()
-      ? Array.from(new Set([...khatibList, khatibInput.trim()]))
-      : khatibList;
-    const finalMuazin = muazinInput.trim()
-      ? Array.from(new Set([...muazinList, muazinInput.trim()]))
-      : muazinList;
-
     setSaving(true);
     try {
       const payload = {
         masjid_id: targetMasjid.id,
-        id_masjid_simas: targetMasjid.id_masjid_simas || null,
+        id_masjid_simas: targetMasjid.id_masjid_simas || targetMasjid.id_baru_simas || null,
         nama_masjid: targetMasjid.nama_masjid,
         kecamatan: targetMasjid.kecamatan || null,
-        jumlah_pengurus: Number(jumlahPengurus || 0),
+        jumlah_pengurus: Math.max(0, Number(jumlahPengurus || 0)),
         ketua_pengurus: ketuaPengurus.trim(),
         no_hp_ketua: noHpKetua.trim(),
         nama_sekretaris: namaSekretaris.trim(),
         no_hp_sekretaris: noHpSekretaris.trim(),
-        daftar_imam: finalImam.join(', '),
-        daftar_khatib: finalKhatib.join(', '),
-        daftar_muazin: finalMuazin.join(', '),
-        jumlah_remaja: Number(jumlahRemaja || 0),
+        daftar_imam: parseListInput(daftarImamText),
+        daftar_khatib: parseListInput(daftarKhatibText),
+        daftar_muazin: parseListInput(daftarMuazinText),
+        jumlah_remaja: Math.max(0, Number(jumlahRemaja || 0)),
         ketua_remaja: ketuaRemaja.trim(),
-        kategori_jamaah: kategoriJamaah,
+        kategori_jamaah: kategoriJamaah || '50 - 100',
         updated_at: new Date().toISOString(),
       };
 
@@ -247,10 +263,14 @@ export default function SdmMasjidTab({
       if (error) throw new Error(error.message);
 
       setShowModal(false);
-      onNotify('success', 'Data SDM Tersimpan', `Data SDM "${targetMasjid.nama_masjid}" berhasil disimpan.`);
+      onNotify(
+        'success',
+        'Data SDM Tersimpan',
+        `Pendataan SDM untuk "${targetMasjid.nama_masjid}" berhasil disimpan.`
+      );
       await onRefresh();
     } catch (err: any) {
-      onNotify('error', 'Gagal Menyimpan SDM', err?.message || 'Terjadi kesalahan.');
+      onNotify('error', 'Gagal Menyimpan SDM', err?.message || 'Terjadi kesalahan saat menyimpan data.');
     } finally {
       setSaving(false);
     }
@@ -258,6 +278,7 @@ export default function SdmMasjidTab({
 
   return (
     <div className="space-y-4">
+      {/* Toolbar Aksi Atas */}
       <div className="flex flex-wrap items-center justify-end gap-2">
         <button
           type="button"
@@ -275,32 +296,45 @@ export default function SdmMasjidTab({
         </button>
         <button
           type="button"
-          onClick={() => openModal()}
+          onClick={() => openCreateOrEdit()}
           className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition"
         >
-          + Input / Edit SDM Masjid
+          + Input / Update SDM
         </button>
       </div>
 
+      {/* Ringkasan Statistik SDM */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-white rounded-xl border border-gray-200 p-3.5 shadow-2xs">
-          <div className="text-[11px] font-semibold text-gray-500">Total Lembaga</div>
-          <div className="text-xl font-bold text-gray-900 mt-0.5">{summaryStats.totalLembaga}</div>
+          <div className="text-[11px] font-semibold text-gray-500">Sudah Terdata SDM</div>
+          <div className="text-xl font-bold text-emerald-700 mt-0.5">
+            {summaryStats.sudahTerdata}{' '}
+            <span className="text-xs font-medium text-gray-500">
+              / {summaryStats.totalLembaga}
+            </span>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-amber-200 p-3.5 shadow-2xs">
+          <div className="text-[11px] font-semibold text-amber-700">Belum Terdata SDM</div>
+          <div className="text-xl font-bold text-amber-800 mt-0.5">
+            {summaryStats.belumTerdata}
+          </div>
         </div>
         <div className="bg-white rounded-xl border border-emerald-200 p-3.5 shadow-2xs">
-          <div className="text-[11px] font-semibold text-emerald-700">SDM Sudah Terdata</div>
-          <div className="text-xl font-bold text-emerald-800 mt-0.5">{summaryStats.terdata}</div>
+          <div className="text-[11px] font-semibold text-emerald-700">Akumulasi Pengurus</div>
+          <div className="text-xl font-bold text-gray-900 mt-0.5">
+            {summaryStats.totalPengurus.toLocaleString('id-ID')}
+          </div>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-3.5 shadow-2xs">
-          <div className="text-[11px] font-semibold text-gray-500">Akumulasi Pengurus</div>
-          <div className="text-xl font-bold text-gray-900 mt-0.5">{summaryStats.totalPengurus}</div>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-3.5 shadow-2xs">
-          <div className="text-[11px] font-semibold text-gray-500">Akumulasi Remaja Masjid</div>
-          <div className="text-xl font-bold text-gray-900 mt-0.5">{summaryStats.totalRemaja}</div>
+        <div className="bg-white rounded-xl border border-sky-200 p-3.5 shadow-2xs">
+          <div className="text-[11px] font-semibold text-sky-700">Akumulasi Remaja Masjid</div>
+          <div className="text-xl font-bold text-gray-900 mt-0.5">
+            {summaryStats.totalRemaja.toLocaleString('id-ID')}
+          </div>
         </div>
       </div>
 
+      {/* Panel Filter & Pencarian */}
       <div className="bg-white rounded-2xl border border-gray-200 p-3.5 shadow-2xs">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5">
           <div className="lg:col-span-4">
@@ -308,7 +342,7 @@ export default function SdmMasjidTab({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari nama masjid, ketua, sekretaris, imam, khatib..."
+              placeholder="Cari masjid, ketua, imam, khatib, muazin, remaja..."
               className="w-full px-3.5 py-2 bg-gray-50 border border-gray-300 rounded-xl text-xs text-gray-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             />
           </div>
@@ -324,7 +358,7 @@ export default function SdmMasjidTab({
               <option value="MUSHALLA">Mushalla</option>
             </select>
           </div>
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             <select
               aria-label="Filter Kecamatan SDM"
               value={activeKecamatanFilter}
@@ -340,17 +374,31 @@ export default function SdmMasjidTab({
               ))}
             </select>
           </div>
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             <select
-              aria-label="Filter Kategori Jamaah"
-              value={filterJamaah}
-              onChange={(e) => setFilterJamaah(e.target.value)}
+              aria-label="Filter Status Pendataan SDM"
+              value={filterStatusSdm}
+              onChange={(e) =>
+                setFilterStatusSdm(e.target.value as 'ALL' | 'SUDAH' | 'BELUM')
+              }
               className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-semibold text-gray-800"
             >
-              <option value="ALL">Semua Kategori Jamaah</option>
-              {JAMAAH_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt} Jamaah
+              <option value="ALL">Semua Status SDM</option>
+              <option value="SUDAH">Sudah Terdata</option>
+              <option value="BELUM">Belum Terdata</option>
+            </select>
+          </div>
+          <div className="lg:col-span-2">
+            <select
+              aria-label="Filter Kategori Jamaah"
+              value={filterKategoriJamaah}
+              onChange={(e) => setFilterKategoriJamaah(e.target.value)}
+              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-semibold text-gray-800"
+            >
+              <option value="ALL">Semua Jamaah</option>
+              {KATEGORI_JAMAAH_OPTIONS.map((kat) => (
+                <option key={kat} value={kat}>
+                  {kat}
                 </option>
               ))}
             </select>
@@ -358,19 +406,24 @@ export default function SdmMasjidTab({
         </div>
       </div>
 
+      {/* Daftar / Tabel SDM */}
       <div className="bg-white rounded-2xl shadow-xs border border-gray-200 overflow-hidden">
         {loading ? (
-          <div className="p-10 text-center text-sm text-gray-500">Memuat data SDM masjid...</div>
+          <div className="p-10 text-center text-sm text-gray-500">
+            Memuat data SDM masjid &amp; mushalla...
+          </div>
         ) : filteredList.length === 0 ? (
           <div className="p-10 text-center text-sm text-gray-500">
-            Belum ada data SDM masjid/mushalla untuk ditampilkan.
+            Tidak ada data SDM yang sesuai dengan filter saat ini.
           </div>
         ) : (
           <>
+            {/* Tampilan Mobile (< md) */}
             <div className="md:hidden divide-y divide-gray-100">
               {filteredList.map((m) => {
                 const s = getSdmForMasjid(m);
                 const jenis = detectJenisLembaga(m);
+                const terdata = hasSdmRecord(s);
                 return (
                   <div key={m.id} className="p-4 space-y-2.5 bg-white">
                     <div className="flex items-start justify-between gap-2">
@@ -380,51 +433,69 @@ export default function SdmMasjidTab({
                         </div>
                         <h3 className="font-bold text-sm text-gray-900">{m.nama_masjid}</h3>
                       </div>
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                        {s?.kategori_jamaah || '50 - 100'}
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                          terdata
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            : 'bg-amber-50 text-amber-800 border-amber-200'
+                        }`}
+                      >
+                        {terdata ? 'Terdata' : 'Belum'}
                       </span>
                     </div>
 
                     <div className="bg-gray-50 rounded-xl p-3 text-xs text-gray-700 space-y-1">
                       <div>
-                        <strong>Ketua:</strong> {s?.ketua_pengurus || '-'}{' '}
-                        {s?.no_hp_ketua ? `(${s.no_hp_ketua})` : ''} •{' '}
-                        <strong>Pengurus:</strong> {s?.jumlah_pengurus ?? 0}
+                        <strong>Pengurus:</strong> {s?.jumlah_pengurus ?? 0} org • Ketua:{' '}
+                        <strong>{s?.ketua_pengurus || '-'}</strong>{' '}
+                        {s?.no_hp_ketua ? `(${s.no_hp_ketua})` : ''}
                       </div>
                       <div>
-                        <strong>Imam:</strong>{' '}
-                        {s?.daftar_imam && s.daftar_imam.length > 0 ? s.daftar_imam.join(', ') : '-'}
+                        <strong>Sekretaris:</strong> {s?.nama_sekretaris || '-'}{' '}
+                        {s?.no_hp_sekretaris ? `(${s.no_hp_sekretaris})` : ''}
                       </div>
                       <div>
-                        <strong>Khatib:</strong>{' '}
-                        {s?.daftar_khatib && s.daftar_khatib.length > 0 ? s.daftar_khatib.join(', ') : '-'}
+                        <strong>Imam:</strong> {formatListDisplay(s?.daftar_imam)}
                       </div>
                       <div>
-                        <strong>Muazin:</strong>{' '}
-                        {s?.daftar_muazin && s.daftar_muazin.length > 0 ? s.daftar_muazin.join(', ') : '-'}
+                        <strong>Khatib:</strong> {formatListDisplay(s?.daftar_khatib)}
+                      </div>
+                      <div>
+                        <strong>Muazin:</strong> {formatListDisplay(s?.daftar_muazin)}
+                      </div>
+                      <div>
+                        <strong>Remaja Masjid:</strong> {s?.jumlah_remaja ?? 0} org • Ketua:{' '}
+                        <strong>{s?.ketua_remaja || '-'}</strong>
+                      </div>
+                      <div>
+                        <strong>Kategori Jamaah:</strong>{' '}
+                        <span className="font-semibold text-emerald-800">
+                          {s?.kategori_jamaah || '-'}
+                        </span>
                       </div>
                     </div>
 
                     <button
                       type="button"
-                      onClick={() => openModal(m)}
-                      className="w-full py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold"
+                      onClick={() => openCreateOrEdit(m)}
+                      className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition"
                     >
-                      {s ? 'Edit Data SDM' : '+ Input Data SDM'}
+                      {terdata ? 'Edit Data SDM' : '+ Input Data SDM'}
                     </button>
                   </div>
                 );
               })}
             </div>
 
+            {/* Tampilan Desktop (>= md) */}
             <div className="hidden md:block overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 text-sm">
                 <thead className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider text-left">
                   <tr>
                     <th className="px-5 py-3.5 font-semibold">Nama &amp; Kecamatan</th>
-                    <th className="px-5 py-3.5 font-semibold">Pengurus &amp; Remaja</th>
+                    <th className="px-5 py-3.5 font-semibold">Pengurus &amp; Pimpinan</th>
                     <th className="px-5 py-3.5 font-semibold">Imam, Khatib &amp; Muazin</th>
-                    <th className="px-5 py-3.5 font-semibold">Jamaah</th>
+                    <th className="px-5 py-3.5 font-semibold">Remaja &amp; Jamaah</th>
                     <th className="px-5 py-3.5 font-semibold text-right">Aksi</th>
                   </tr>
                 </thead>
@@ -432,61 +503,71 @@ export default function SdmMasjidTab({
                   {filteredList.map((m) => {
                     const s = getSdmForMasjid(m);
                     const jenis = detectJenisLembaga(m);
+                    const terdata = hasSdmRecord(s);
                     return (
                       <tr key={m.id} className="hover:bg-gray-50 transition">
-                        <td className="px-5 py-3.5">
+                        <td className="px-5 py-3.5 align-top">
                           <div className="font-bold text-gray-900">{m.nama_masjid}</div>
                           <div className="text-xs text-emerald-700 font-medium">
                             {jenis === 'MUSHALLA' ? 'Mushalla' : 'Masjid'} • {m.kecamatan || '-'}
                           </div>
+                          <div className="mt-1">
+                            <span
+                              className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                terdata
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                  : 'bg-amber-50 text-amber-800 border-amber-200'
+                              }`}
+                            >
+                              {terdata ? 'SDM Terdata' : 'Belum Terdata'}
+                            </span>
+                          </div>
                         </td>
-                        <td className="px-5 py-3.5 text-xs text-gray-700 space-y-0.5">
+                        <td className="px-5 py-3.5 text-xs text-gray-700 space-y-0.5 align-top">
+                          <div>
+                            Jumlah Pengurus: <strong>{s?.jumlah_pengurus ?? 0}</strong>
+                          </div>
                           <div>
                             Ketua: <strong>{s?.ketua_pengurus || '-'}</strong>{' '}
-                            {s?.no_hp_ketua ? `(${s.no_hp_ketua})` : ''}
+                            {s?.no_hp_ketua ? `• ${s.no_hp_ketua}` : ''}
                           </div>
                           <div>
                             Sekretaris: <strong>{s?.nama_sekretaris || '-'}</strong>{' '}
-                            {s?.no_hp_sekretaris ? `(${s.no_hp_sekretaris})` : ''}
-                          </div>
-                          <div>
-                            Jml Pengurus: <strong>{s?.jumlah_pengurus ?? 0}</strong> • Remaja:{' '}
-                            <strong>{s?.jumlah_remaja ?? 0}</strong>{' '}
-                            {s?.ketua_remaja ? `(Ket: ${s.ketua_remaja})` : ''}
+                            {s?.no_hp_sekretaris ? `• ${s.no_hp_sekretaris}` : ''}
                           </div>
                         </td>
-                        <td className="px-5 py-3.5 text-xs text-gray-700 space-y-0.5 max-w-xs">
+                        <td className="px-5 py-3.5 text-xs text-gray-700 space-y-0.5 max-w-xs align-top">
                           <div>
-                            <span className="font-semibold text-gray-900">Imam:</span>{' '}
-                            {s?.daftar_imam && s.daftar_imam.length > 0
-                              ? s.daftar_imam.join(', ')
-                              : '-'}
+                            <strong>Imam:</strong> {formatListDisplay(s?.daftar_imam)}
                           </div>
                           <div>
-                            <span className="font-semibold text-gray-900">Khatib:</span>{' '}
-                            {s?.daftar_khatib && s.daftar_khatib.length > 0
-                              ? s.daftar_khatib.join(', ')
-                              : '-'}
+                            <strong>Khatib:</strong> {formatListDisplay(s?.daftar_khatib)}
                           </div>
                           <div>
-                            <span className="font-semibold text-gray-900">Muazin:</span>{' '}
-                            {s?.daftar_muazin && s.daftar_muazin.length > 0
-                              ? s.daftar_muazin.join(', ')
-                              : '-'}
+                            <strong>Muazin:</strong> {formatListDisplay(s?.daftar_muazin)}
                           </div>
                         </td>
-                        <td className="px-5 py-3.5">
-                          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                            {s?.kategori_jamaah || '50 - 100'}
-                          </span>
+                        <td className="px-5 py-3.5 text-xs text-gray-700 space-y-0.5 align-top">
+                          <div>
+                            Remaja Masjid: <strong>{s?.jumlah_remaja ?? 0}</strong>
+                          </div>
+                          <div>
+                            Ketua Remaja: <strong>{s?.ketua_remaja || '-'}</strong>
+                          </div>
+                          <div>
+                            Kategori Jamaah:{' '}
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-sky-50 text-sky-800 border border-sky-200">
+                              {s?.kategori_jamaah || '-'}
+                            </span>
+                          </div>
                         </td>
-                        <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                        <td className="px-5 py-3.5 text-right whitespace-nowrap align-top">
                           <button
                             type="button"
-                            onClick={() => openModal(m)}
-                            className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold"
+                            onClick={() => openCreateOrEdit(m)}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold transition"
                           >
-                            {s ? 'Edit SDM' : 'Input SDM'}
+                            {terdata ? 'Edit SDM' : 'Input SDM'}
                           </button>
                         </td>
                       </tr>
@@ -499,10 +580,13 @@ export default function SdmMasjidTab({
         )}
       </div>
 
+      {/* Modal Form Input / Edit SDM Masjid */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 border border-emerald-100 my-8 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-bold text-gray-900 mb-1">Form SDM Masjid / Mushalla</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">
+              Form Pendataan SDM Masjid &amp; Mushalla
+            </h3>
             <p className="text-xs text-gray-500 mb-4">
               Lengkapi data kepengurusan, imam, khatib, muazin, remaja masjid, dan kategori jamaah.
             </p>
@@ -524,8 +608,8 @@ export default function SdmMasjidTab({
                   <option value="">-- Pilih Masjid / Mushalla --</option>
                   {scopedMasjid.map((m) => (
                     <option key={m.id} value={m.id}>
-                      [{detectJenisLembaga(m) === 'MUSHALLA' ? 'Mushalla' : 'Masjid'}] {m.nama_masjid}{' '}
-                      {m.kecamatan ? `(${m.kecamatan})` : ''}
+                      [{detectJenisLembaga(m) === 'MUSHALLA' ? 'Mushalla' : 'Masjid'}]{' '}
+                      {m.nama_masjid} {m.kecamatan ? `(${m.kecamatan})` : ''}
                     </option>
                   ))}
                 </select>
@@ -540,7 +624,7 @@ export default function SdmMasjidTab({
                     type="number"
                     min={0}
                     value={jumlahPengurus}
-                    onChange={(e) => setJumlahPengurus(Number(e.target.value || 0))}
+                    onChange={(e) => setJumlahPengurus(e.target.value)}
                     className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-900"
                   />
                 </div>
@@ -552,6 +636,7 @@ export default function SdmMasjidTab({
                     type="text"
                     value={ketuaPengurus}
                     onChange={(e) => setKetuaPengurus(e.target.value)}
+                    placeholder="Nama Ketua DKM / Pengurus"
                     className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-900"
                   />
                 </div>
@@ -563,6 +648,7 @@ export default function SdmMasjidTab({
                     type="text"
                     value={noHpKetua}
                     onChange={(e) => setNoHpKetua(e.target.value)}
+                    placeholder="08..."
                     className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-900"
                   />
                 </div>
@@ -577,6 +663,7 @@ export default function SdmMasjidTab({
                     type="text"
                     value={namaSekretaris}
                     onChange={(e) => setNamaSekretaris(e.target.value)}
+                    placeholder="Nama Sekretaris"
                     className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-900"
                   />
                 </div>
@@ -588,153 +675,49 @@ export default function SdmMasjidTab({
                     type="text"
                     value={noHpSekretaris}
                     onChange={(e) => setNoHpSekretaris(e.target.value)}
+                    placeholder="08..."
                     className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-900"
                   />
                 </div>
               </div>
 
-              {/* Imam */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                  Daftar Imam (Tekan Enter atau Tambah)
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={imamInput}
-                    onChange={(e) => setImamInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        addChip(imamInput, imamList, setImamList, setImamInput);
-                      }
-                    }}
-                    placeholder="Nama imam, pisahkan koma jika banyak"
-                    className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-900"
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                    Daftar Imam
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={daftarImamText}
+                    onChange={(e) => setDaftarImamText(e.target.value)}
+                    placeholder="Pisahkan dengan koma"
+                    className="w-full border border-gray-300 rounded-xl p-2.5 text-xs text-gray-900"
                   />
-                  <button
-                    type="button"
-                    onClick={() => addChip(imamInput, imamList, setImamList, setImamInput)}
-                    className="px-3.5 py-2 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold"
-                  >
-                    + Tambah
-                  </button>
                 </div>
-                {imamList.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {imamList.map((name) => (
-                      <span
-                        key={name}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium"
-                      >
-                        {name}
-                        <button
-                          type="button"
-                          onClick={() => setImamList((prev) => prev.filter((x) => x !== name))}
-                          className="text-emerald-700 hover:text-red-600 font-bold"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Khatib */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                  Daftar Khatib
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={khatibInput}
-                    onChange={(e) => setKhatibInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        addChip(khatibInput, khatibList, setKhatibList, setKhatibInput);
-                      }
-                    }}
-                    placeholder="Nama khatib"
-                    className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-900"
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                    Daftar Khatib
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={daftarKhatibText}
+                    onChange={(e) => setDaftarKhatibText(e.target.value)}
+                    placeholder="Pisahkan dengan koma"
+                    className="w-full border border-gray-300 rounded-xl p-2.5 text-xs text-gray-900"
                   />
-                  <button
-                    type="button"
-                    onClick={() => addChip(khatibInput, khatibList, setKhatibList, setKhatibInput)}
-                    className="px-3.5 py-2 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold"
-                  >
-                    + Tambah
-                  </button>
                 </div>
-                {khatibList.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {khatibList.map((name) => (
-                      <span
-                        key={name}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium"
-                      >
-                        {name}
-                        <button
-                          type="button"
-                          onClick={() => setKhatibList((prev) => prev.filter((x) => x !== name))}
-                          className="text-emerald-700 hover:text-red-600 font-bold"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Muazin */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                  Daftar Muazin
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={muazinInput}
-                    onChange={(e) => setMuazinInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        addChip(muazinInput, muazinList, setMuazinList, setMuazinInput);
-                      }
-                    }}
-                    placeholder="Nama muazin"
-                    className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-900"
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                    Daftar Muazin
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={daftarMuazinText}
+                    onChange={(e) => setDaftarMuazinText(e.target.value)}
+                    placeholder="Pisahkan dengan koma"
+                    className="w-full border border-gray-300 rounded-xl p-2.5 text-xs text-gray-900"
                   />
-                  <button
-                    type="button"
-                    onClick={() => addChip(muazinInput, muazinList, setMuazinList, setMuazinInput)}
-                    className="px-3.5 py-2 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold"
-                  >
-                    + Tambah
-                  </button>
                 </div>
-                {muazinList.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {muazinList.map((name) => (
-                      <span
-                        key={name}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium"
-                      >
-                        {name}
-                        <button
-                          type="button"
-                          onClick={() => setMuazinList((prev) => prev.filter((x) => x !== name))}
-                          className="text-emerald-700 hover:text-red-600 font-bold"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -746,18 +729,19 @@ export default function SdmMasjidTab({
                     type="number"
                     min={0}
                     value={jumlahRemaja}
-                    onChange={(e) => setJumlahRemaja(Number(e.target.value || 0))}
+                    onChange={(e) => setJumlahRemaja(e.target.value)}
                     className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-900"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                    Ketua Remaja
+                    Ketua Remaja Masjid
                   </label>
                   <input
                     type="text"
                     value={ketuaRemaja}
                     onChange={(e) => setKetuaRemaja(e.target.value)}
+                    placeholder="Nama Ketua Remaja"
                     className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-900"
                   />
                 </div>
@@ -770,9 +754,9 @@ export default function SdmMasjidTab({
                     onChange={(e) => setKategoriJamaah(e.target.value)}
                     className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm font-semibold text-gray-900 bg-white"
                   >
-                    {JAMAAH_OPTIONS.map((opt) => (
-                      <option key={opt} value={opt}>
-                        {opt} Jamaah
+                    {KATEGORI_JAMAAH_OPTIONS.map((kat) => (
+                      <option key={kat} value={kat}>
+                        {kat}
                       </option>
                     ))}
                   </select>
