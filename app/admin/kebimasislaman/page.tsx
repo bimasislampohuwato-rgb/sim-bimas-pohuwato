@@ -228,10 +228,22 @@ const parseSubMenuParam = (raw: string | null): MasjidSubMenuKey => {
   return 'masjid';
 };
 
+function extractKecamatanFromKuaWilayah(raw?: string | null): string | null {
+  if (!raw) return null;
+  const cleaned = String(raw)
+    .trim()
+    .replace(/^KUA\s+Kecamatan\s+/i, '')
+    .replace(/^KUA\s+Kec\.?\s+/i, '')
+    .replace(/^KUA\s+/i, '')
+    .trim();
+  return cleaned || null;
+}
+
 export default function KebimasislamanPage() {
   const router = useRouter();
 
   const [activeMode, setActiveMode] = useState<string>('pegawai');
+  const [kuaKecamatanLock, setKuaKecamatanLock] = useState<string | null>(null);
   const [activeSubMenu, setActiveSubMenu] = useState<MasjidSubMenuKey>('masjid');
 
   const [masjidList, setMasjidList] = useState<MasjidRecord[]>([]);
@@ -446,21 +458,39 @@ export default function KebimasislamanPage() {
 
       const { data: prof } = await supabase
         .from('profiles')
-        .select('role, jabatan_admin')
+        .select('role, jabatan_admin, kua_wilayah')
         .eq('id', user.id)
         .single();
 
       const savedMode = localStorage.getItem('active_mode');
       const mode =
         savedMode ||
-        (prof?.role === 'super_admin' ? 'super_admin' : prof?.jabatan_admin || 'pegawai');
+        (prof?.role === 'super_admin'
+          ? 'super_admin'
+          : prof?.jabatan_admin || (prof?.kua_wilayah ? 'admin_kua' : 'pegawai'));
 
       if (mode === 'pegawai') {
         router.push('/pegawai');
         return;
       }
 
+      const isGlobalAdmin =
+        mode === 'super_admin' ||
+        mode === 'admin_bimas' ||
+        prof?.role === 'super_admin';
+
+      const lockedKec = !isGlobalAdmin
+        ? extractKecamatanFromKuaWilayah(prof?.kua_wilayah)
+        : null;
+
       setActiveMode(mode);
+      setKuaKecamatanLock(lockedKec);
+
+      if (lockedKec) {
+        setFilterKecamatan(lockedKec);
+        setFilterSubKecamatan(lockedKec);
+      }
+
       await loadAllData();
     }
     init();
@@ -488,23 +518,33 @@ export default function KebimasislamanPage() {
     [kiblatMap]
   );
 
+  // Data Masjid & Mushalla terlingkup hak akses (Semua Pohuwato untuk Bimas/Super Admin, 1 Kecamatan untuk Admin KUA)
+  const scopedMasjidList = useMemo(() => {
+    if (!kuaKecamatanLock) return masjidList;
+    const target = kuaKecamatanLock.toLowerCase();
+    return masjidList.filter(
+      (m) => (m.kecamatan || '').trim().toLowerCase() === target
+    );
+  }, [masjidList, kuaKecamatanLock]);
+
   const jumlahMasjidOnly = useMemo(
-    () => masjidList.filter((m) => getEffectiveJenis(m) === 'MASJID').length,
-    [masjidList]
+    () => scopedMasjidList.filter((m) => getEffectiveJenis(m) === 'MASJID').length,
+    [scopedMasjidList]
   );
 
   const jumlahMushallaOnly = useMemo(
-    () => masjidList.filter((m) => getEffectiveJenis(m) === 'MUSHALLA').length,
-    [masjidList]
+    () => scopedMasjidList.filter((m) => getEffectiveJenis(m) === 'MUSHALLA').length,
+    [scopedMasjidList]
   );
 
   const kecamatanOptions = useMemo(() => {
+    if (kuaKecamatanLock) return [kuaKecamatanLock];
     const set = new Set<string>(kecamatanMaster);
-    masjidList.forEach((m) => {
+    scopedMasjidList.forEach((m) => {
       if (m.kecamatan) set.add(m.kecamatan.trim());
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'id'));
-  }, [kecamatanMaster, masjidList]);
+  }, [kecamatanMaster, scopedMasjidList, kuaKecamatanLock]);
 
   const tipologiOptions = useMemo(() => {
     const base = [
@@ -518,18 +558,23 @@ export default function KebimasislamanPage() {
       'Mushalla di tempat Publik',
     ];
     const set = new Set<string>(base);
-    masjidList.forEach((m) => {
+    scopedMasjidList.forEach((m) => {
       if (m.tipologi) set.add(m.tipologi.trim());
     });
     return Array.from(set);
-  }, [masjidList]);
+  }, [scopedMasjidList]);
 
   const filteredMasjid = useMemo(() => {
     const q = searchMasjid.trim().toLowerCase();
-    return masjidList.filter((m) => {
+    return scopedMasjidList.filter((m) => {
       const jenis = getEffectiveJenis(m);
       if (filterJenis !== 'ALL' && jenis !== filterJenis) return false;
-      if (filterKecamatan !== 'ALL' && (m.kecamatan || '') !== filterKecamatan) return false;
+      if (
+        filterKecamatan !== 'ALL' &&
+        (m.kecamatan || '').trim().toLowerCase() !== filterKecamatan.trim().toLowerCase()
+      ) {
+        return false;
+      }
       if (filterTipologi !== 'ALL' && (m.tipologi || '') !== filterTipologi) return false;
       if (!q) return true;
       return (
@@ -541,13 +586,68 @@ export default function KebimasislamanPage() {
         m.alamat?.toLowerCase().includes(q)
       );
     });
-  }, [masjidList, searchMasjid, filterJenis, filterKecamatan, filterTipologi]);
+  }, [scopedMasjidList, searchMasjid, filterJenis, filterKecamatan, filterTipologi]);
+
+  // Basis lembaga terfilter Jenis & Kecamatan pada sub-menu SDM & Arah Kiblat
+  const baseSubScopedMasjid = useMemo(() => {
+    return scopedMasjidList.filter((m) => {
+      if (filterSubJenis !== 'ALL' && getEffectiveJenis(m) !== filterSubJenis) return false;
+      if (
+        filterSubKecamatan !== 'ALL' &&
+        (m.kecamatan || '').trim().toLowerCase() !== filterSubKecamatan.trim().toLowerCase()
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [scopedMasjidList, filterSubJenis, filterSubKecamatan]);
+
+  // Ringkasan statistik SDM mengikuti filter Jenis & Kecamatan aktif
+  const sdmSummaryStats = useMemo(() => {
+    let sudahInput = 0;
+    baseSubScopedMasjid.forEach((m) => {
+      const s = getSdmForMasjid(m);
+      if (s && (s.ketua_pengurus || s.nama_sekretaris || s.jumlah_pengurus > 0 || (s.daftar_imam && s.daftar_imam.length > 0))) {
+        sudahInput += 1;
+      }
+    });
+    const total = baseSubScopedMasjid.length;
+    return {
+      total,
+      sudahInput,
+      belumInput: Math.max(0, total - sudahInput),
+    };
+  }, [baseSubScopedMasjid, getSdmForMasjid]);
+
+  // Ringkasan statistik Kalibrasi Arah Kiblat mengikuti filter Jenis & Kecamatan aktif
+  const kiblatSummaryStats = useMemo(() => {
+    let sudahKalibrasi = 0;
+    let sesuaiPresisi = 0;
+    let perluKoreksi = 0;
+    baseSubScopedMasjid.forEach((m) => {
+      const k = getKiblatForMasjid(m);
+      if (k && k.azimut_kiblat !== null && k.azimut_kiblat !== undefined) {
+        sudahKalibrasi += 1;
+        if (k.status_penyimpangan === 'Sesuai / Presisi') {
+          sesuaiPresisi += 1;
+        } else if (k.status_penyimpangan === 'Perlu Koreksi') {
+          perluKoreksi += 1;
+        }
+      }
+    });
+    const total = baseSubScopedMasjid.length;
+    return {
+      total,
+      sudahKalibrasi,
+      belumKalibrasi: Math.max(0, total - sudahKalibrasi),
+      sesuaiPresisi,
+      perluKoreksi,
+    };
+  }, [baseSubScopedMasjid, getKiblatForMasjid]);
 
   const filteredSubMasjid = useMemo(() => {
     const q = searchSub.trim().toLowerCase();
-    return masjidList.filter((m) => {
-      if (filterSubJenis !== 'ALL' && getEffectiveJenis(m) !== filterSubJenis) return false;
-      if (filterSubKecamatan !== 'ALL' && (m.kecamatan || '') !== filterSubKecamatan) return false;
+    return baseSubScopedMasjid.filter((m) => {
       if (activeSubMenu === 'arah_kiblat' && filterKiblatStatus !== 'ALL') {
         const k = getKiblatForMasjid(m);
         if (filterKiblatStatus === 'SUDAH' && (!k || k.azimut_kiblat === null)) return false;
@@ -570,10 +670,8 @@ export default function KebimasislamanPage() {
       );
     });
   }, [
-    masjidList,
+    baseSubScopedMasjid,
     searchSub,
-    filterSubJenis,
-    filterSubKecamatan,
     filterKiblatStatus,
     activeSubMenu,
     getKiblatForMasjid,
@@ -593,7 +691,7 @@ export default function KebimasislamanPage() {
     setMIdSimas('');
     setMIdBaru('');
     setMNama('');
-    setMKecamatan(kecamatanOptions[0] || '');
+    setMKecamatan(kuaKecamatanLock || kecamatanOptions[0] || '');
     setMTipologi(filterJenis === 'MUSHALLA' ? 'Mushalla Perumahan' : 'Masjid Jami');
     setMStatusTanah('Wakaf');
     setMAlamat('');
@@ -637,7 +735,7 @@ export default function KebimasislamanPage() {
       id_masjid_simas: mIdSimas.trim() || null,
       id_baru_simas: mIdBaru.trim() || null,
       nama_masjid: mNama.trim(),
-      kecamatan: mKecamatan.trim() || null,
+      kecamatan: (kuaKecamatanLock || mKecamatan.trim()) || null,
       tipologi: mTipologi.trim() || null,
       status_tanah: mStatusTanah.trim() || null,
       alamat: mAlamat.trim() || null,
@@ -687,7 +785,7 @@ export default function KebimasislamanPage() {
 
   // ==================== MODAL & CRUD SDM ====================
   const openSdmForm = (m?: MasjidRecord) => {
-    const targetMasjid = m || filteredSubMasjid[0] || masjidList[0];
+    const targetMasjid = m || filteredSubMasjid[0] || scopedMasjidList[0];
     const masjidId = targetMasjid?.id || '';
     const existing = targetMasjid ? getSdmForMasjid(targetMasjid) : undefined;
 
@@ -711,7 +809,7 @@ export default function KebimasislamanPage() {
 
   const handleSelectSdmMasjid = (newMasjidId: string) => {
     setSdmSelectedMasjidId(newMasjidId);
-    const found = masjidList.find((item) => item.id === newMasjidId);
+    const found = scopedMasjidList.find((item) => item.id === newMasjidId);
     const existing = found ? getSdmForMasjid(found) : undefined;
     setSdmJumlahPengurus(existing?.jumlah_pengurus || 0);
     setSdmKetuaPengurus(existing?.ketua_pengurus || '');
@@ -740,7 +838,7 @@ export default function KebimasislamanPage() {
 
   const handleSaveSdm = async (e: React.FormEvent) => {
     e.preventDefault();
-    const targetMasjid = masjidList.find((m) => m.id === sdmSelectedMasjidId);
+    const targetMasjid = scopedMasjidList.find((m) => m.id === sdmSelectedMasjidId);
     if (!targetMasjid) {
       triggerToast('error', 'Pilih Masjid / Mushalla', 'Silakan pilih masjid atau mushalla terlebih dahulu.');
       return;
@@ -786,7 +884,7 @@ export default function KebimasislamanPage() {
 
   // ==================== MODAL & CRUD ARAH KIBLAT ====================
   const openKiblatForm = (m?: MasjidRecord) => {
-    const targetMasjid = m || filteredSubMasjid[0] || masjidList[0];
+    const targetMasjid = m || filteredSubMasjid[0] || scopedMasjidList[0];
     const existing = targetMasjid ? getKiblatForMasjid(targetMasjid) : undefined;
 
     setKiblatSelectedMasjidId(targetMasjid?.id || '');
@@ -831,7 +929,7 @@ export default function KebimasislamanPage() {
 
   const handleSelectKiblatMasjid = (newMasjidId: string) => {
     setKiblatSelectedMasjidId(newMasjidId);
-    const found = masjidList.find((item) => item.id === newMasjidId);
+    const found = scopedMasjidList.find((item) => item.id === newMasjidId);
     const existing = found ? getKiblatForMasjid(found) : undefined;
     setKLatitude(
       existing?.latitude !== null && existing?.latitude !== undefined
@@ -885,7 +983,7 @@ export default function KebimasislamanPage() {
 
   const handleSaveKiblat = async (e: React.FormEvent) => {
     e.preventDefault();
-    const targetMasjid = masjidList.find((m) => m.id === kiblatSelectedMasjidId);
+    const targetMasjid = scopedMasjidList.find((m) => m.id === kiblatSelectedMasjidId);
     if (!targetMasjid) {
       triggerToast('error', 'Pilih Masjid / Mushalla', 'Silakan pilih masjid atau mushalla terlebih dahulu.');
       return;
@@ -1107,7 +1205,7 @@ export default function KebimasislamanPage() {
             ).trim();
             const kec = String(r['Kecamatan'] || r['kecamatan'] || '').trim();
 
-            const matched = masjidList.find(
+            const matched = scopedMasjidList.find(
               (m) =>
                 (idSimas && m.id_masjid_simas === idSimas) ||
                 (namaMasjid &&
@@ -1162,7 +1260,7 @@ export default function KebimasislamanPage() {
             ).trim();
             const kec = String(r['Kecamatan'] || r['kecamatan'] || '').trim();
 
-            const matched = masjidList.find(
+            const matched = scopedMasjidList.find(
               (m) =>
                 (idSimas && m.id_masjid_simas === idSimas) ||
                 (namaMasjid &&
@@ -1229,27 +1327,16 @@ export default function KebimasislamanPage() {
         const withIdSimas = cleanRows.filter((r) => Boolean(r.id_masjid_simas));
         const withoutIdSimas = cleanRows.filter((r) => !r.id_masjid_simas);
 
-        // Deduplikasi berdasarkan id_masjid_simas agar tidak ada baris ganda dalam 1 batch upsert
-        const uniqueWithIdSimas = Array.from(
-          new Map(withIdSimas.map((row) => [String(row.id_masjid_simas).trim(), row])).values()
-        );
-
-        if (uniqueWithIdSimas.length > 0) {
-          for (let i = 0; i < uniqueWithIdSimas.length; i += 100) {
-            const chunk = uniqueWithIdSimas.slice(i, i + 100);
-            const { error } = await supabase
-              .from('masjid_mushalla')
-              .upsert(chunk, { onConflict: 'id_masjid_simas' });
-            if (error) throw new Error(error.message);
-          }
+        if (withIdSimas.length > 0) {
+          const { error } = await supabase
+            .from('masjid_mushalla')
+            .upsert(withIdSimas, { onConflict: 'id_masjid_simas' });
+          if (error) throw new Error(error.message);
         }
 
         if (withoutIdSimas.length > 0) {
-          for (let i = 0; i < withoutIdSimas.length; i += 100) {
-            const chunk = withoutIdSimas.slice(i, i + 100);
-            const { error } = await supabase.from('masjid_mushalla').insert(chunk);
-            if (error) throw new Error(error.message);
-          }
+          const { error } = await supabase.from('masjid_mushalla').insert(withoutIdSimas);
+          if (error) throw new Error(error.message);
         }
 
         const countMasjid = cleanRows.filter((r) => r.jenis_lembaga === 'MASJID').length;
@@ -1261,31 +1348,23 @@ export default function KebimasislamanPage() {
           `${cleanRows.length} data terimport (${countMasjid} Masjid, ${countMushalla} Mushalla).`
         );
       } else if (importMode === 'sdm_masjid') {
-        const rawValid = importRowsPreview
+        const validRows = importRowsPreview
           .filter((r) => Boolean(r.masjid_id))
           .map(({ _matched, ...rest }) => ({
             ...rest,
             updated_at: nowIso,
           }));
 
-        if (rawValid.length === 0) {
+        if (validRows.length === 0) {
           throw new Error(
             'Tidak ada baris yang cocok dengan data Masjid/Mushalla di database. Pastikan ID atau Nama + Kecamatan sesuai data SIMAS.'
           );
         }
 
-        // Deduplikasi berdasarkan masjid_id (baris terakhir pada file Excel menang)
-        const validRows = Array.from(
-          new Map(rawValid.map((row) => [String(row.masjid_id), row])).values()
-        );
-
-        for (let i = 0; i < validRows.length; i += 100) {
-          const chunk = validRows.slice(i, i + 100);
-          const { error } = await supabase
-            .from('masjid_sdm')
-            .upsert(chunk, { onConflict: 'masjid_id' });
-          if (error) throw new Error(error.message);
-        }
+        const { error } = await supabase
+          .from('masjid_sdm')
+          .upsert(validRows, { onConflict: 'masjid_id' });
+        if (error) throw new Error(error.message);
 
         triggerToast(
           'success',
@@ -1293,31 +1372,23 @@ export default function KebimasislamanPage() {
           `${validRows.length} data SDM berhasil diimport.`
         );
       } else if (importMode === 'arah_kiblat') {
-        const rawValid = importRowsPreview
+        const validRows = importRowsPreview
           .filter((r) => Boolean(r.masjid_id))
           .map(({ _matched, ...rest }) => ({
             ...rest,
             updated_at: nowIso,
           }));
 
-        if (rawValid.length === 0) {
+        if (validRows.length === 0) {
           throw new Error(
             'Tidak ada baris yang cocok dengan data Masjid/Mushalla di database. Pastikan ID atau Nama + Kecamatan sesuai data SIMAS.'
           );
         }
 
-        // Deduplikasi berdasarkan masjid_id untuk mencegah error "cannot affect row a second time"
-        const validRows = Array.from(
-          new Map(rawValid.map((row) => [String(row.masjid_id), row])).values()
-        );
-
-        for (let i = 0; i < validRows.length; i += 100) {
-          const chunk = validRows.slice(i, i + 100);
-          const { error } = await supabase
-            .from('masjid_arah_kiblat')
-            .upsert(chunk, { onConflict: 'masjid_id' });
-          if (error) throw new Error(error.message);
-        }
+        const { error } = await supabase
+          .from('masjid_arah_kiblat')
+          .upsert(validRows, { onConflict: 'masjid_id' });
+        if (error) throw new Error(error.message);
 
         triggerToast(
           'success',
@@ -1336,7 +1407,7 @@ export default function KebimasislamanPage() {
       setProcessing(false);
     }
   };
-  
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <Sidebar />
@@ -1374,8 +1445,15 @@ export default function KebimasislamanPage() {
             {/* HEADER HALAMAN */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
               <div>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 mb-1.5">
-                  <span>Data Kebimasislaman • Masjid & Mushalla</span>
+                <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    <span>Data Kebimasislaman • Masjid & Mushalla</span>
+                  </div>
+                  {kuaKecamatanLock && (
+                    <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                      <span>🔒 Wilayah Admin KUA: Kec. {kuaKecamatanLock}</span>
+                    </div>
+                  )}
                 </div>
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
                   <span>{activeSubMenuMeta.icon}</span>
@@ -1500,7 +1578,7 @@ export default function KebimasislamanPage() {
                   </div>
                   <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-2xs">
                     <div className="text-[11px] font-semibold text-gray-500">Gabungan Terdaftar</div>
-                    <div className="text-xl font-bold text-gray-900 mt-1">{masjidList.length}</div>
+                    <div className="text-xl font-bold text-gray-900 mt-1">{scopedMasjidList.length}</div>
                   </div>
                 </div>
 
@@ -1536,14 +1614,15 @@ export default function KebimasislamanPage() {
                     <div className="lg:col-span-3">
                       <select
                         aria-label="Filter Kecamatan"
-                        value={filterKecamatan}
+                        value={kuaKecamatanLock || filterKecamatan}
+                        disabled={Boolean(kuaKecamatanLock)}
                         onChange={(e) => setFilterKecamatan(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none disabled:bg-gray-100 disabled:text-gray-600"
                       >
-                        <option value="ALL">📍 Semua Kecamatan</option>
+                        {!kuaKecamatanLock && <option value="ALL">📍 Semua Kecamatan</option>}
                         {kecamatanOptions.map((kec) => (
                           <option key={kec} value={kec}>
-                            {kec}
+                            📍 {kec}
                           </option>
                         ))}
                       </select>
@@ -1568,7 +1647,7 @@ export default function KebimasislamanPage() {
 
                   {(searchMasjid ||
                     filterJenis !== 'ALL' ||
-                    filterKecamatan !== 'ALL' ||
+                    (!kuaKecamatanLock && filterKecamatan !== 'ALL') ||
                     filterTipologi !== 'ALL') && (
                     <div className="flex items-center justify-between pt-3 mt-3 border-t border-gray-100 text-xs">
                       <button
@@ -1576,7 +1655,7 @@ export default function KebimasislamanPage() {
                         onClick={() => {
                           setSearchMasjid('');
                           setFilterJenis('ALL');
-                          setFilterKecamatan('ALL');
+                          setFilterKecamatan(kuaKecamatanLock || 'ALL');
                           setFilterTipologi('ALL');
                         }}
                         className="font-bold text-emerald-700 hover:underline"
@@ -1793,6 +1872,26 @@ export default function KebimasislamanPage() {
             {/* ==================== SUB-MENU 2: SDM MASJID & MUSHALLA ==================== */}
             {activeSubMenu === 'sdm_masjid' && (
               <>
+                {/* RINGKASAN METRIK SDM */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                  <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-2xs">
+                    <div className="text-[11px] font-semibold text-gray-500">Total Lembaga Wilayah</div>
+                    <div className="text-xl font-bold text-gray-900 mt-1">{sdmSummaryStats.total}</div>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-2xs">
+                    <div className="text-[11px] font-semibold text-gray-500">Sudah Input SDM</div>
+                    <div className="text-xl font-bold text-emerald-700 mt-1">{sdmSummaryStats.sudahInput}</div>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-2xs">
+                    <div className="text-[11px] font-semibold text-gray-500">Belum Input SDM</div>
+                    <div className="text-xl font-bold text-amber-700 mt-1">{sdmSummaryStats.belumInput}</div>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-2xs">
+                    <div className="text-[11px] font-semibold text-gray-500">Hasil Filter Saat Ini</div>
+                    <div className="text-xl font-bold text-teal-700 mt-1">{filteredSubMasjid.length}</div>
+                  </div>
+                </div>
+
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-6">
                   <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
                     <div className="relative sm:col-span-6">
@@ -1822,14 +1921,15 @@ export default function KebimasislamanPage() {
                     <div className="sm:col-span-3">
                       <select
                         aria-label="Filter Kecamatan SDM"
-                        value={filterSubKecamatan}
+                        value={kuaKecamatanLock || filterSubKecamatan}
+                        disabled={Boolean(kuaKecamatanLock)}
                         onChange={(e) => setFilterSubKecamatan(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none disabled:bg-gray-100 disabled:text-gray-600"
                       >
-                        <option value="ALL">📍 Semua Kecamatan</option>
+                        {!kuaKecamatanLock && <option value="ALL">📍 Semua Kecamatan</option>}
                         {kecamatanOptions.map((kec) => (
                           <option key={kec} value={kec}>
-                            {kec}
+                            📍 {kec}
                           </option>
                         ))}
                       </select>
@@ -1992,6 +2092,40 @@ export default function KebimasislamanPage() {
             {/* ==================== SUB-MENU 3: KALIBRASI ARAH KIBLAT ==================== */}
             {activeSubMenu === 'arah_kiblat' && (
               <>
+                {/* RINGKASAN METRIK KALIBRASI ARAH KIBLAT */}
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
+                  <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-2xs">
+                    <div className="text-[11px] font-semibold text-gray-500">Sudah Dikalibrasi</div>
+                    <div className="text-xl font-bold text-emerald-700 mt-1">
+                      {kiblatSummaryStats.sudahKalibrasi}
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-2xs">
+                    <div className="text-[11px] font-semibold text-gray-500">Belum Dikalibrasi</div>
+                    <div className="text-xl font-bold text-gray-600 mt-1">
+                      {kiblatSummaryStats.belumKalibrasi}
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-2xs">
+                    <div className="text-[11px] font-semibold text-gray-500">Sesuai / Presisi</div>
+                    <div className="text-xl font-bold text-teal-700 mt-1">
+                      {kiblatSummaryStats.sesuaiPresisi}
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-2xs">
+                    <div className="text-[11px] font-semibold text-gray-500">Perlu Koreksi</div>
+                    <div className="text-xl font-bold text-amber-700 mt-1">
+                      {kiblatSummaryStats.perluKoreksi}
+                    </div>
+                  </div>
+                  <div className="col-span-2 sm:col-span-1 bg-white rounded-2xl border border-emerald-200 p-4 shadow-2xs">
+                    <div className="text-[11px] font-semibold text-emerald-800">Hasil Filter Saat Ini</div>
+                    <div className="text-xl font-bold text-gray-900 mt-1">
+                      {filteredSubMasjid.length}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
                     <div className="relative lg:col-span-4">
@@ -2021,14 +2155,15 @@ export default function KebimasislamanPage() {
                     <div className="lg:col-span-3">
                       <select
                         aria-label="Filter Kecamatan Kiblat"
-                        value={filterSubKecamatan}
+                        value={kuaKecamatanLock || filterSubKecamatan}
+                        disabled={Boolean(kuaKecamatanLock)}
                         onChange={(e) => setFilterSubKecamatan(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none disabled:bg-gray-100 disabled:text-gray-600"
                       >
-                        <option value="ALL">📍 Semua Kecamatan</option>
+                        {!kuaKecamatanLock && <option value="ALL">📍 Semua Kecamatan</option>}
                         {kecamatanOptions.map((kec) => (
                           <option key={kec} value={kec}>
-                            {kec}
+                            📍 {kec}
                           </option>
                         ))}
                       </select>
@@ -2316,9 +2451,10 @@ export default function KebimasislamanPage() {
                       <input
                         type="text"
                         list="kecamatan-masjid-list"
-                        value={mKecamatan}
+                        value={kuaKecamatanLock || mKecamatan}
+                        disabled={Boolean(kuaKecamatanLock)}
                         onChange={(e) => setMKecamatan(e.target.value)}
-                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm text-gray-900"
+                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm text-gray-900 disabled:bg-gray-100 disabled:text-gray-600"
                       />
                       <datalist id="kecamatan-masjid-list">
                         {kecamatanOptions.map((k) => (
@@ -2490,10 +2626,11 @@ export default function KebimasislamanPage() {
                       className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-gray-900 bg-white"
                     >
                       <option value="">-- Pilih Masjid / Mushalla --</option>
-                      {masjidList.map((m) => (
+                      {scopedMasjidList.map((m) => (
                         <option key={m.id} value={m.id}>
                           [{getEffectiveJenis(m) === 'MUSHALLA' ? 'Mushalla' : 'Masjid'}] {m.nama_masjid}{' '}
                           {m.kecamatan ? `(${m.kecamatan})` : ''}
+                          {m.alamat ? ` - ${m.alamat}` : ''}
                         </option>
                       ))}
                     </select>
@@ -2813,10 +2950,11 @@ export default function KebimasislamanPage() {
                       className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-gray-900 bg-white"
                     >
                       <option value="">-- Pilih Masjid / Mushalla --</option>
-                      {masjidList.map((m) => (
+                      {scopedMasjidList.map((m) => (
                         <option key={m.id} value={m.id}>
                           [{getEffectiveJenis(m) === 'MUSHALLA' ? 'Mushalla' : 'Masjid'}] {m.nama_masjid}{' '}
                           {m.kecamatan ? `(${m.kecamatan})` : ''}
+                          {m.alamat ? ` - ${m.alamat}` : ''}
                         </option>
                       ))}
                     </select>
