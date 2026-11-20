@@ -1229,16 +1229,27 @@ export default function KebimasislamanPage() {
         const withIdSimas = cleanRows.filter((r) => Boolean(r.id_masjid_simas));
         const withoutIdSimas = cleanRows.filter((r) => !r.id_masjid_simas);
 
-        if (withIdSimas.length > 0) {
-          const { error } = await supabase
-            .from('masjid_mushalla')
-            .upsert(withIdSimas, { onConflict: 'id_masjid_simas' });
-          if (error) throw new Error(error.message);
+        // Deduplikasi berdasarkan id_masjid_simas agar tidak ada baris ganda dalam 1 batch upsert
+        const uniqueWithIdSimas = Array.from(
+          new Map(withIdSimas.map((row) => [String(row.id_masjid_simas).trim(), row])).values()
+        );
+
+        if (uniqueWithIdSimas.length > 0) {
+          for (let i = 0; i < uniqueWithIdSimas.length; i += 100) {
+            const chunk = uniqueWithIdSimas.slice(i, i + 100);
+            const { error } = await supabase
+              .from('masjid_mushalla')
+              .upsert(chunk, { onConflict: 'id_masjid_simas' });
+            if (error) throw new Error(error.message);
+          }
         }
 
         if (withoutIdSimas.length > 0) {
-          const { error } = await supabase.from('masjid_mushalla').insert(withoutIdSimas);
-          if (error) throw new Error(error.message);
+          for (let i = 0; i < withoutIdSimas.length; i += 100) {
+            const chunk = withoutIdSimas.slice(i, i + 100);
+            const { error } = await supabase.from('masjid_mushalla').insert(chunk);
+            if (error) throw new Error(error.message);
+          }
         }
 
         const countMasjid = cleanRows.filter((r) => r.jenis_lembaga === 'MASJID').length;
@@ -1250,23 +1261,31 @@ export default function KebimasislamanPage() {
           `${cleanRows.length} data terimport (${countMasjid} Masjid, ${countMushalla} Mushalla).`
         );
       } else if (importMode === 'sdm_masjid') {
-        const validRows = importRowsPreview
+        const rawValid = importRowsPreview
           .filter((r) => Boolean(r.masjid_id))
           .map(({ _matched, ...rest }) => ({
             ...rest,
             updated_at: nowIso,
           }));
 
-        if (validRows.length === 0) {
+        if (rawValid.length === 0) {
           throw new Error(
             'Tidak ada baris yang cocok dengan data Masjid/Mushalla di database. Pastikan ID atau Nama + Kecamatan sesuai data SIMAS.'
           );
         }
 
-        const { error } = await supabase
-          .from('masjid_sdm')
-          .upsert(validRows, { onConflict: 'masjid_id' });
-        if (error) throw new Error(error.message);
+        // Deduplikasi berdasarkan masjid_id (baris terakhir pada file Excel menang)
+        const validRows = Array.from(
+          new Map(rawValid.map((row) => [String(row.masjid_id), row])).values()
+        );
+
+        for (let i = 0; i < validRows.length; i += 100) {
+          const chunk = validRows.slice(i, i + 100);
+          const { error } = await supabase
+            .from('masjid_sdm')
+            .upsert(chunk, { onConflict: 'masjid_id' });
+          if (error) throw new Error(error.message);
+        }
 
         triggerToast(
           'success',
@@ -1274,23 +1293,31 @@ export default function KebimasislamanPage() {
           `${validRows.length} data SDM berhasil diimport.`
         );
       } else if (importMode === 'arah_kiblat') {
-        const validRows = importRowsPreview
+        const rawValid = importRowsPreview
           .filter((r) => Boolean(r.masjid_id))
           .map(({ _matched, ...rest }) => ({
             ...rest,
             updated_at: nowIso,
           }));
 
-        if (validRows.length === 0) {
+        if (rawValid.length === 0) {
           throw new Error(
             'Tidak ada baris yang cocok dengan data Masjid/Mushalla di database. Pastikan ID atau Nama + Kecamatan sesuai data SIMAS.'
           );
         }
 
-        const { error } = await supabase
-          .from('masjid_arah_kiblat')
-          .upsert(validRows, { onConflict: 'masjid_id' });
-        if (error) throw new Error(error.message);
+        // Deduplikasi berdasarkan masjid_id untuk mencegah error "cannot affect row a second time"
+        const validRows = Array.from(
+          new Map(rawValid.map((row) => [String(row.masjid_id), row])).values()
+        );
+
+        for (let i = 0; i < validRows.length; i += 100) {
+          const chunk = validRows.slice(i, i + 100);
+          const { error } = await supabase
+            .from('masjid_arah_kiblat')
+            .upsert(chunk, { onConflict: 'masjid_id' });
+          if (error) throw new Error(error.message);
+        }
 
         triggerToast(
           'success',
@@ -1309,7 +1336,7 @@ export default function KebimasislamanPage() {
       setProcessing(false);
     }
   };
-
+  
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <Sidebar />
