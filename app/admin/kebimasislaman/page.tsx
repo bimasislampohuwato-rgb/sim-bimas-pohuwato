@@ -123,6 +123,23 @@ export default function KebimasislamanPage() {
   const [importFileName, setImportFileName] = useState('');
   const [importing, setImporting] = useState(false);
 
+  const [showProfilKuaModal, setShowProfilKuaModal] = useState(false);
+  const [savingProfilKua, setSavingProfilKua] = useState(false);
+  const [profilKuaForm, setProfilKuaForm] = useState({
+    id: '' as string,
+    namaKua: '',
+    alamat: '',
+    telepon: '',
+    email: '',
+    pimpinan: 'Kepala KUA',
+    nama_pimpinan: '',
+    nip_pimpinan: '',
+    kop_baris_1: 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
+    kop_baris_2: 'KANTOR KEMENTERIAN AGAMA KABUPATEN POHUWATO',
+    kop_baris_3: '',
+    kop_baris_4: '',
+  });
+
   const [toast, setToast] = useState<{
     type: 'success' | 'error';
     title: string;
@@ -153,9 +170,11 @@ export default function KebimasislamanPage() {
 
   useEffect(() => {
     try {
-      const savedMode = localStorage.getItem('active_mode') || localStorage.getItem('activeRoleMode') || 'pegawai';
+      const savedMode =
+        localStorage.getItem('active_mode') || localStorage.getItem('activeRoleMode') || 'pegawai';
       setActiveMode(savedMode);
-      const savedKec = localStorage.getItem('kuaKecamatan') || localStorage.getItem('kua_wilayah') || '';
+      const savedKec =
+        localStorage.getItem('kuaKecamatan') || localStorage.getItem('kua_wilayah') || '';
       if (savedMode === 'admin_kua' && savedKec.trim()) {
         setKuaKecamatanLock(savedKec.trim());
       } else {
@@ -273,7 +292,11 @@ export default function KebimasislamanPage() {
       });
       setKiblatMap(kMap);
     } catch (err: any) {
-      triggerToast('error', 'Gagal Memuat Data', err?.message || 'Terjadi kesalahan saat memuat data.');
+      triggerToast(
+        'error',
+        'Gagal Memuat Data',
+        err?.message || 'Terjadi kesalahan saat memuat data.'
+      );
     } finally {
       setLoading(false);
     }
@@ -282,6 +305,129 @@ export default function KebimasislamanPage() {
   useEffect(() => {
     loadAllData();
   }, [loadAllData]);
+
+  const openProfilKuaModal = useCallback(async () => {
+    const targetName =
+      kuaKecamatanLock ||
+      (typeof window !== 'undefined'
+        ? localStorage.getItem('kuaKecamatan') || localStorage.getItem('kua_wilayah') || ''
+        : '');
+
+    let kuaRow: any = null;
+    if (targetName) {
+      const { data: kuaRows } = await supabase
+        .from('KuaProfile')
+        .select('*')
+        .ilike('namaKua', `%${targetName}%`)
+        .limit(1);
+      if (Array.isArray(kuaRows) && kuaRows.length > 0) {
+        kuaRow = kuaRows[0];
+      }
+    }
+
+    let pkRow: any = null;
+    const { data: pkRows } = await supabase.from('profil_kantor').select('*').limit(50);
+    if (Array.isArray(pkRows) && targetName) {
+      pkRow = pkRows.find(
+        (r: any) =>
+          (kuaRow?.id && String(r.kua_id) === String(kuaRow.id)) ||
+          String(r.nama_kantor || '').toLowerCase().includes(targetName.toLowerCase())
+      );
+    }
+
+    const resolvedNamaKua =
+      pkRow?.nama_kantor ||
+      kuaRow?.namaKua ||
+      (targetName.toLowerCase().startsWith('kua')
+        ? targetName
+        : `KUA Kecamatan ${targetName || 'Saya'}`);
+
+    setProfilKuaForm({
+      id: pkRow?.id || '',
+      namaKua: resolvedNamaKua,
+      alamat: pkRow?.alamat || kuaRow?.alamat || '',
+      telepon: pkRow?.nomor_kontak || kuaRow?.telepon || '',
+      email: pkRow?.email || kuaRow?.email || '',
+      pimpinan: pkRow?.pimpinan || 'Kepala KUA',
+      nama_pimpinan: pkRow?.nama_pimpinan || '',
+      nip_pimpinan: pkRow?.nip_pimpinan || '',
+      kop_baris_1: pkRow?.kop_baris_1 || 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
+      kop_baris_2: pkRow?.kop_baris_2 || 'KANTOR KEMENTERIAN AGAMA KABUPATEN POHUWATO',
+      kop_baris_3: pkRow?.kop_baris_3 || resolvedNamaKua.toUpperCase(),
+      kop_baris_4: pkRow?.kop_baris_4 || pkRow?.alamat || kuaRow?.alamat || '',
+    });
+    setShowProfilKuaModal(true);
+  }, [kuaKecamatanLock]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onOpenKua = () => {
+      openProfilKuaModal();
+    };
+    window.addEventListener('kebimasislaman:open-profil-kua', onOpenKua);
+    return () => window.removeEventListener('kebimasislaman:open-profil-kua', onOpenKua);
+  }, [openProfilKuaModal]);
+
+  const handleSaveProfilKuaModal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profilKuaForm.namaKua.trim()) {
+      triggerToast('error', 'Data Belum Lengkap', 'Nama KUA wajib diisi.');
+      return;
+    }
+    setSavingProfilKua(true);
+    try {
+      const nowIso = new Date().toISOString();
+      const unitKey = `kua_${profilKuaForm.namaKua
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_|_$/g, '')}`;
+
+      const payload: any = {
+        unit_key: unitKey,
+        jenis_unit: 'kua',
+        nama_kantor: profilKuaForm.namaKua.trim(),
+        alamat: profilKuaForm.alamat.trim(),
+        nomor_kontak: profilKuaForm.telepon.trim(),
+        email: profilKuaForm.email.trim(),
+        pimpinan: profilKuaForm.pimpinan.trim(),
+        nama_pimpinan: profilKuaForm.nama_pimpinan.trim(),
+        nip_pimpinan: profilKuaForm.nip_pimpinan.trim(),
+        kop_baris_1: profilKuaForm.kop_baris_1.trim(),
+        kop_baris_2: profilKuaForm.kop_baris_2.trim(),
+        kop_baris_3: profilKuaForm.kop_baris_3.trim(),
+        kop_baris_4: profilKuaForm.kop_baris_4.trim(),
+        updated_at: nowIso,
+      };
+
+      if (profilKuaForm.id) {
+        const { error } = await supabase
+          .from('profil_kantor')
+          .update(payload)
+          .eq('id', profilKuaForm.id);
+        if (error) throw new Error(error.message);
+      } else {
+        const newId =
+          typeof crypto !== 'undefined' && crypto.randomUUID
+            ? crypto.randomUUID()
+            : 'pk_kua_' + Date.now();
+        const { error } = await supabase
+          .from('profil_kantor')
+          .insert([{ id: newId, ...payload, created_at: nowIso }]);
+        if (error) throw new Error(error.message);
+      }
+
+      setShowProfilKuaModal(false);
+      triggerToast(
+        'success',
+        'Profil KUA Tersimpan',
+        `Profil ${profilKuaForm.namaKua.trim()} berhasil diperbarui.`
+      );
+    } catch (err: any) {
+      triggerToast('error', 'Gagal Menyimpan Profil KUA', err?.message || 'Terjadi kesalahan.');
+    } finally {
+      setSavingProfilKua(false);
+    }
+  };
 
   const activeSubMeta =
     SUBMENU_ITEMS.find((item) => item.key === activeSubMenu) || SUBMENU_ITEMS[0];
@@ -370,12 +516,10 @@ export default function KebimasislamanPage() {
           .map((row) => {
             const nama = readCell(row, ['nama_masjid', 'Nama Masjid', 'Nama Lembaga', 'Nama']);
             if (!nama) return null;
-            const idSimas = readCell(row, ['id_masjid_simas', 'ID Masjid SIMAS', 'ID SIMAS']) || null;
+            const idSimas =
+              readCell(row, ['id_masjid_simas', 'ID Masjid SIMAS', 'ID SIMAS']) || null;
             const idBaru = readCell(row, ['id_baru_simas', 'ID Baru SIMAS']) || null;
-            const kec =
-              kuaKecamatanLock ||
-              readCell(row, ['kecamatan', 'Kecamatan']) ||
-              null;
+            const kec = kuaKecamatanLock || readCell(row, ['kecamatan', 'Kecamatan']) || null;
             return {
               jenis_lembaga: detectJenis(idSimas, idBaru, readCell(row, ['jenis_lembaga', 'Jenis'])),
               id_masjid_simas: idSimas,
@@ -408,17 +552,22 @@ export default function KebimasislamanPage() {
       } else if (importMode === 'sdm_masjid') {
         const payloads = importRowsPreview
           .map((row) => {
-            const simasKey = readCell(row, ['id_masjid_simas', 'ID Masjid SIMAS', 'ID SIMAS']).toLowerCase();
+            const simasKey = readCell(row, [
+              'id_masjid_simas',
+              'ID Masjid SIMAS',
+              'ID SIMAS',
+            ]).toLowerCase();
             const namaKey = readCell(row, ['nama_masjid', 'Nama Masjid', 'Nama']).toLowerCase();
             const matched: MasjidMushallaItem | undefined =
               (simasKey ? bySimas.get(simasKey) : undefined) ||
               (namaKey ? byNama.get(namaKey) : undefined);
-            const namaFinal = matched?.nama_masjid || readCell(row, ['nama_masjid', 'Nama Masjid']);
+            const namaFinal =
+              matched?.nama_masjid || readCell(row, ['nama_masjid', 'Nama Masjid']);
             if (!matched && !namaFinal) return null;
 
             return {
               masjid_id: matched?.id || null,
-              id_masjid_simas: matched?.id_masjid_simas || (simasKey || null),
+              id_masjid_simas: matched?.id_masjid_simas || simasKey || null,
               nama_masjid: namaFinal,
               kecamatan: matched?.kecamatan || readCell(row, ['kecamatan', 'Kecamatan']) || null,
               jumlah_pengurus: Number(readCell(row, ['jumlah_pengurus', 'Jumlah Pengurus']) || 0),
@@ -447,7 +596,11 @@ export default function KebimasislamanPage() {
       } else if (importMode === 'arah_kiblat') {
         const payloads = importRowsPreview
           .map((row) => {
-            const simasKey = readCell(row, ['id_masjid_simas', 'ID Masjid SIMAS', 'ID SIMAS']).toLowerCase();
+            const simasKey = readCell(row, [
+              'id_masjid_simas',
+              'ID Masjid SIMAS',
+              'ID SIMAS',
+            ]).toLowerCase();
             const namaKey = readCell(row, ['nama_masjid', 'Nama Masjid', 'Nama']).toLowerCase();
             const matched: MasjidMushallaItem | undefined =
               (simasKey ? bySimas.get(simasKey) : undefined) ||
@@ -496,7 +649,11 @@ export default function KebimasislamanPage() {
       setImportMode(null);
       setImportRowsPreview([]);
       setImportFileName('');
-      triggerToast('success', 'Import Berhasil', `${importRowsPreview.length} baris data berhasil diproses.`);
+      triggerToast(
+        'success',
+        'Import Berhasil',
+        `${importRowsPreview.length} baris data berhasil diproses.`
+      );
       await loadAllData();
     } catch (err: any) {
       triggerToast('error', 'Gagal Import Excel', err?.message || 'Terjadi kesalahan saat import.');
@@ -534,15 +691,27 @@ export default function KebimasislamanPage() {
                 Pengelolaan Data Masjid &amp; Mushalla SIMAS, SDM Keagamaan, dan Kalibrasi Arah Kiblat
               </p>
             </div>
-            {kuaKecamatanLock && (
-              <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-900">
-                Admin KUA: <strong>{kuaKecamatanLock}</strong>
-              </span>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {kuaKecamatanLock && (
+                <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-900">
+                  Admin KUA: <strong>{kuaKecamatanLock}</strong>
+                </span>
+              )}
+              {activeMode === 'admin_kua' && (
+                <button
+                  type="button"
+                  onClick={openProfilKuaModal}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition shadow-2xs"
+                >
+                  <span>🏛️</span>
+                  <span>Edit Profil KUA</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Navigasi Sub-Menu */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* Navigasi Sub-Menu (Selaras Horizontal di Semua Peran) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {SUBMENU_ITEMS.map((item) => {
               const active = activeSubMenu === item.key;
               return (
@@ -636,6 +805,188 @@ export default function KebimasislamanPage() {
               }}
               onDownloadTemplateKiblat={() => downloadExcelTemplate('arah_kiblat')}
             />
+          )}
+
+          {/* Modal Edit Profil KUA (Sesuai Akun Login) */}
+          {showProfilKuaModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 border border-gray-200 max-h-[90vh] overflow-y-auto space-y-4">
+                <div>
+                  <h3 className="text-base font-bold text-gray-900">
+                    Manajemen Profil KUA ({profilKuaForm.namaKua})
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Perbarui identitas kantor, pimpinan, dan kop surat khusus untuk unit KUA Anda.
+                  </p>
+                </div>
+
+                <form onSubmit={handleSaveProfilKuaModal} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Nama KUA
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={profilKuaForm.namaKua}
+                        onChange={(e) =>
+                          setProfilKuaForm({ ...profilKuaForm, namaKua: e.target.value })
+                        }
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-900"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Alamat Kantor
+                      </label>
+                      <input
+                        type="text"
+                        value={profilKuaForm.alamat}
+                        onChange={(e) =>
+                          setProfilKuaForm({ ...profilKuaForm, alamat: e.target.value })
+                        }
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Nomor Kontak
+                      </label>
+                      <input
+                        type="text"
+                        value={profilKuaForm.telepon}
+                        onChange={(e) =>
+                          setProfilKuaForm({ ...profilKuaForm, telepon: e.target.value })
+                        }
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        value={profilKuaForm.email}
+                        onChange={(e) =>
+                          setProfilKuaForm({ ...profilKuaForm, email: e.target.value })
+                        }
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Jabatan Pimpinan
+                      </label>
+                      <input
+                        type="text"
+                        value={profilKuaForm.pimpinan}
+                        onChange={(e) =>
+                          setProfilKuaForm({ ...profilKuaForm, pimpinan: e.target.value })
+                        }
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Nama Pimpinan
+                      </label>
+                      <input
+                        type="text"
+                        value={profilKuaForm.nama_pimpinan}
+                        onChange={(e) =>
+                          setProfilKuaForm({ ...profilKuaForm, nama_pimpinan: e.target.value })
+                        }
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-900"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        NIP Pimpinan
+                      </label>
+                      <input
+                        type="text"
+                        value={profilKuaForm.nip_pimpinan}
+                        onChange={(e) =>
+                          setProfilKuaForm({ ...profilKuaForm, nip_pimpinan: e.target.value })
+                        }
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs font-mono text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Kop Baris 1
+                      </label>
+                      <input
+                        type="text"
+                        value={profilKuaForm.kop_baris_1}
+                        onChange={(e) =>
+                          setProfilKuaForm({ ...profilKuaForm, kop_baris_1: e.target.value })
+                        }
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Kop Baris 2
+                      </label>
+                      <input
+                        type="text"
+                        value={profilKuaForm.kop_baris_2}
+                        onChange={(e) =>
+                          setProfilKuaForm({ ...profilKuaForm, kop_baris_2: e.target.value })
+                        }
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Kop Baris 3
+                      </label>
+                      <input
+                        type="text"
+                        value={profilKuaForm.kop_baris_3}
+                        onChange={(e) =>
+                          setProfilKuaForm({ ...profilKuaForm, kop_baris_3: e.target.value })
+                        }
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Kop Baris 4
+                      </label>
+                      <input
+                        type="text"
+                        value={profilKuaForm.kop_baris_4}
+                        onChange={(e) =>
+                          setProfilKuaForm({ ...profilKuaForm, kop_baris_4: e.target.value })
+                        }
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-3 border-t">
+                    <button
+                      type="button"
+                      onClick={() => setShowProfilKuaModal(false)}
+                      className="px-4 py-2 border rounded-xl text-xs font-semibold text-gray-700"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={savingProfilKua}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold disabled:opacity-50"
+                    >
+                      {savingProfilKua ? 'Menyimpan...' : 'Simpan Profil KUA'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
           )}
 
           {/* Modal Import Excel Bersama */}

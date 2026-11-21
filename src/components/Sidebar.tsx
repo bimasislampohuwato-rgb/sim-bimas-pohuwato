@@ -26,6 +26,7 @@ function SidebarContent() {
   const searchParams = useSearchParams();
   const [logoUrl, setLogoUrl] = useState('');
   const [activeMode, setActiveMode] = useState<string>('pegawai');
+  const [kuaLabel, setKuaLabel] = useState<string>('');
   const [activeSubMenu, setActiveSubMenu] = useState<MasjidMenuKey>('masjid');
   const [loadingRole, setLoadingRole] = useState(true);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -86,6 +87,16 @@ function SidebarContent() {
         setLogoUrl(logoData.value_text);
       }
 
+      try {
+        const savedKec =
+          localStorage.getItem('kuaKecamatan') || localStorage.getItem('kua_wilayah') || '';
+        if (savedKec.trim()) {
+          setKuaLabel(savedKec.trim());
+        }
+      } catch {
+        // ignore storage errors
+      }
+
       const savedMode = localStorage.getItem('active_mode');
       if (savedMode) {
         setActiveMode(savedMode);
@@ -97,7 +108,7 @@ function SidebarContent() {
         if (user) {
           const { data: prof } = await supabase
             .from('profiles')
-            .select('role, jabatan_admin')
+            .select('role, jabatan_admin, nama_kua, unit_kerja')
             .eq('id', user.id)
             .single();
 
@@ -107,6 +118,8 @@ function SidebarContent() {
                 ? 'super_admin'
                 : prof.jabatan_admin || 'pegawai';
             setActiveMode(defaultMode);
+            const profKua = prof.nama_kua || prof.unit_kerja || '';
+            if (profKua) setKuaLabel(profKua);
           }
         }
         setLoadingRole(false);
@@ -145,6 +158,13 @@ function SidebarContent() {
       window.dispatchEvent(
         new CustomEvent('kebimasislaman:menu-change', { detail: { menu: menuKey } })
       );
+    }
+    onItemClick?.();
+  };
+
+  const handleOpenProfilKua = (onItemClick?: () => void) => {
+    if (typeof window !== 'undefined' && pathname === '/admin/kebimasislaman') {
+      window.dispatchEvent(new CustomEvent('kebimasislaman:open-profil-kua'));
     }
     onItemClick?.();
   };
@@ -377,6 +397,44 @@ function SidebarContent() {
           </div>
         )}
 
+        {/* MANAJEMEN PROFIL KUA (Khusus Admin KUA - Terkunci sesuai akun login) */}
+        {isAdminKua && (
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => toggleMenu('manajemen')}
+              className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-300 hover:bg-emerald-800/30 transition"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-base">⚙️</span>
+                <span>Manajemen</span>
+              </div>
+              <span
+                className={`text-[10px] transition-transform ${
+                  openMenus.manajemen ? 'rotate-180' : ''
+                }`}
+              >
+                ▼
+              </span>
+            </button>
+            {openMenus.manajemen && (
+              <div className="ml-4 pl-4 mt-1 border-l border-emerald-800/80 space-y-1">
+                <Link
+                  href="/admin/master?section=profil_kantor"
+                  onClick={() => handleOpenProfilKua(onItemClick)}
+                  className={`block px-3 py-2 rounded-lg text-xs transition ${
+                    pathname === '/admin/master'
+                      ? 'bg-emerald-600 text-white font-bold shadow-md'
+                      : 'text-emerald-300/80 hover:bg-emerald-800/40 hover:text-white'
+                  }`}
+                >
+                  • Profil KUA {kuaLabel ? `(${kuaLabel})` : ''}
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* MANAJEMEN (Khusus Super Admin) */}
         {isSuperAdmin && (
           <div className="pt-2">
@@ -457,10 +515,15 @@ function SidebarContent() {
           active: pathname === '/pegawai',
         },
         {
-          label: isSuperAdmin || isAdminBimas ? 'PTSP' : 'Pegawai',
-          href: isSuperAdmin || isAdminBimas ? '/admin/ptsp' : '/pegawai',
-          icon: isSuperAdmin || isAdminBimas ? '📄' : '👥',
-          active: pathname.startsWith('/admin/ptsp'),
+          label: isSuperAdmin || isAdminBimas ? 'PTSP' : 'Profil KUA',
+          href:
+            isSuperAdmin || isAdminBimas
+              ? '/admin/ptsp'
+              : '/admin/master?section=profil_kantor',
+          icon: isSuperAdmin || isAdminBimas ? '📄' : '🏛️',
+          active:
+            pathname.startsWith('/admin/ptsp') ||
+            (isAdminKua && pathname === '/admin/master'),
         },
       ];
 
