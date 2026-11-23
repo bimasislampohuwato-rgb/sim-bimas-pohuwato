@@ -1,23 +1,18 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
 import Sidebar from '@/src/components/Sidebar';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { getKuaProfile, updateKuaProfile } from '@/src/actions/kua-profile';
 
 export default function ProfileKuaPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<any>(null);
+  const [kuaId, setKuaId] = useState<string | null>(null);
   const [kuaData, setKuaData] = useState<any>({
     nama_kua: 'KUA Kecamatan Buntulia',
     kepala_kua: 'H. Rais Abaidata, S.Ag, M.H',
     nip_kepala: '197501012000031002',
-    alamat: 'Jl. Trans Sulawesi Desa Buntulia Utara',
-    kontak: '081244556677',
     email: 'kua.buntulia@kemenag.go.id',
     website: 'https://buntulia.kemenag.go.id',
     foto_kantor: '',
@@ -36,14 +31,25 @@ export default function ProfileKuaPage() {
 
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/login');
-        return;
+      // Auth is handled by middleware; fetch KUA profile directly
+      try {
+      const kuaRes = await getKuaProfile();
+        if (kuaRes.success && kuaRes.data) {
+          const d = kuaRes.data;
+          setKuaId(d.id);
+          setKuaData((prev: any) => ({
+            ...prev,
+            nama_kua: d.namaKua || prev.nama_kua,
+            alamat: d.alamat || prev.alamat,
+            kontak: d.telepon || prev.kontak,
+            email: d.email || prev.email,
+            nip_kepala: d.kepalaKuaNip || prev.nip_kepala,
+          }));
+        }
+      } catch (e) {
+        console.error('Gagal memuat profil KUA:', e);
       }
-
-      const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      if (prof) setProfile(prof);
+      return;
     }
     init();
   }, [router]);
@@ -53,14 +59,32 @@ export default function ProfileKuaPage() {
     setTimeout(() => setToast(null), 5000);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!kuaId) {
+      triggerToast('error', 'Gagal', 'Profil KUA belum dimuat dari database.');
+      return;
+    }
     setProcessing(true);
-    setTimeout(() => {
+    try {
+      const res = await updateKuaProfile(kuaId, {
+        namaKua: kuaData.nama_kua,
+        alamat: kuaData.alamat,
+        telepon: kuaData.kontak || null,
+        email: kuaData.email || null,
+        kepalaKuaNip: kuaData.nip_kepala || null,
+      });
+      if (res.success) {
+        setIsEditing(false);
+        triggerToast('success', 'Profil Diperbarui', res.message);
+      } else {
+        triggerToast('error', 'Gagal', res.message);
+      }
+    } catch (err) {
+      triggerToast('error', 'Gagal', 'Terjadi kesalahan jaringan atau server.');
+    } finally {
       setProcessing(false);
-      setIsEditing(false);
-      triggerToast('success', 'Profil Diperbarui', 'Data profil KUA berhasil disimpan.');
-    }, 800);
+    }
   };
 
   return (
@@ -71,12 +95,12 @@ export default function ProfileKuaPage() {
         
         {toast && (
           <div className="fixed top-6 right-6 z-50 max-w-md w-full bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 flex items-start gap-3.5">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${toast.type === 'success' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>✓</div>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${toast.type === 'success' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>âœ“</div>
             <div className="flex-1">
               <h4 className="text-sm font-bold text-gray-900">{toast.title}</h4>
               <p className="text-xs text-gray-600 mt-0.5">{toast.message}</p>
             </div>
-            <button onClick={() => setToast(null)} className="text-gray-400 font-bold p-1">✕</button>
+            <button onClick={() => setToast(null)} className="text-gray-400 font-bold p-1">âœ•</button>
           </div>
         )}
 
@@ -91,7 +115,7 @@ export default function ProfileKuaPage() {
               onClick={() => setIsEditing(!isEditing)}
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs transition shadow-md shadow-emerald-600/20"
             >
-              {isEditing ? 'Batal Edit' : '✏️ Edit Profil KUA'}
+              {isEditing ? 'Batal Edit' : 'âœï¸ Edit Profil KUA'}
             </button>
           </div>
 
@@ -175,7 +199,7 @@ export default function ProfileKuaPage() {
           {/* TABEL RIWAYAT KEPALA KUA */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center text-xs font-semibold text-gray-600">
-              <span>🏛️ Riwayat Kepemimpinan (Daftar Kepala KUA Terdahulu)</span>
+              <span>ðŸ›ï¸ Riwayat Kepemimpinan (Daftar Kepala KUA Terdahulu)</span>
               <span>Total Periode Tercatat: <strong className="text-emerald-700">{riwayatKepala.length} Orang</strong></span>
             </div>
 

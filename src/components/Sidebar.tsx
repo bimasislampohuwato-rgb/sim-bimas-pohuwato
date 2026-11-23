@@ -1,9 +1,10 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
+import { BarChart3, FileText, Building2, Users, BookOpen, Settings, Menu } from 'lucide-react';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -196,7 +197,7 @@ function SidebarContent() {
                 : 'text-emerald-200/80 hover:bg-emerald-800/40 hover:text-white'
             }`}
           >
-            <span className="text-base">📊</span>
+            <BarChart3 className="w-4 h-4" />
             <span>Dashboard Utama</span>
           </Link>
         )}
@@ -210,7 +211,7 @@ function SidebarContent() {
               className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-300 hover:bg-emerald-800/30 transition"
             >
               <div className="flex items-center gap-3">
-                <span className="text-base">📄</span>
+                <FileText className="w-4 h-4" />
                 <span>Layanan Publik (PTSP)</span>
               </div>
               <span
@@ -218,7 +219,7 @@ function SidebarContent() {
                   openMenus.layananPublik ? 'rotate-180' : ''
                 }`}
               >
-                ▼
+                â–¼
               </span>
             </button>
             {openMenus.layananPublik && (
@@ -232,7 +233,7 @@ function SidebarContent() {
                       : 'text-emerald-300/80 hover:bg-emerald-800/40 hover:text-white'
                   }`}
                 >
-                  • Verifikasi Permohonan
+                  â€¢ Verifikasi Permohonan
                 </Link>
               </div>
             )}
@@ -248,7 +249,7 @@ function SidebarContent() {
               className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-300 hover:bg-emerald-800/30 transition"
             >
               <div className="flex items-center gap-3">
-                <span className="text-base">🏛️</span>
+                <Building2 className="w-4 h-4" />
                 <span>Layanan Internal (KUA)</span>
               </div>
               <span
@@ -256,7 +257,7 @@ function SidebarContent() {
                   openMenus.layananInternal ? 'rotate-180' : ''
                 }`}
               >
-                ▼
+                â–¼
               </span>
             </button>
             {openMenus.layananInternal && (
@@ -266,21 +267,21 @@ function SidebarContent() {
                   onClick={onItemClick}
                   className="block px-3 py-2 rounded-lg text-xs text-emerald-300/80 hover:bg-emerald-800/40 hover:text-white transition"
                 >
-                  • Permohonan Buku Nikah
+                  â€¢ Permohonan Buku Nikah
                 </a>
                 <a
                   href="#"
                   onClick={onItemClick}
                   className="block px-3 py-2 rounded-lg text-xs text-emerald-300/80 hover:bg-emerald-800/40 hover:text-white transition"
                 >
-                  • Permohonan Blangko N
+                  â€¢ Permohonan Blangko N
                 </a>
                 <a
                   href="#"
                   onClick={onItemClick}
                   className="block px-3 py-2 rounded-lg text-xs text-emerald-300/80 hover:bg-emerald-800/40 hover:text-white transition"
                 >
-                  • Permohonan Blangko NB
+                  â€¢ Permohonan Blangko NB
                 </a>
               </div>
             )}
@@ -295,7 +296,7 @@ function SidebarContent() {
             className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-300 hover:bg-emerald-800/30 transition"
           >
             <div className="flex items-center gap-3">
-              <span className="text-base">{isPegawaiMode ? '🪪' : '👥'}</span>
+              <Users className="w-4 h-4" />
               <span>Kepegawaian</span>
             </div>
             <span
@@ -303,7 +304,7 @@ function SidebarContent() {
                 openMenus.kepegawaian ? 'rotate-180' : ''
               }`}
             >
-              ▼
+              â–¼
             </span>
           </button>
           {openMenus.kepegawaian && (
@@ -318,10 +319,10 @@ function SidebarContent() {
                 }`}
               >
                 {isPegawaiMode
-                  ? '• Profil Saya'
+                  ? 'â€¢ Profil Saya'
                   : isAdminKua
-                  ? '• Daftar Pegawai KUA'
-                  : '• Daftar Pegawai'}
+                  ? 'â€¢ Daftar Pegawai KUA'
+                  : 'â€¢ Daftar Pegawai'}
               </Link>
             </div>
           )}
@@ -336,7 +337,7 @@ function SidebarContent() {
               className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-300 hover:bg-emerald-800/30 transition"
             >
               <div className="flex items-center gap-3">
-                <span className="text-base">📖</span>
+                <BookOpen className="w-4 h-4" />
                 <span>Data Kebimasislaman</span>
               </div>
               <span
@@ -344,7 +345,7 @@ function SidebarContent() {
                   openMenus.dataKebimasislaman ? 'rotate-180' : ''
                 }`}
               >
-                ▼
+                â–¼
               </span>
             </button>
 
@@ -359,13 +360,13 @@ function SidebarContent() {
                       : 'text-emerald-200/90 hover:bg-emerald-800/40 hover:text-white'
                   }`}
                 >
-                  <span>• Masjid & Mushalla</span>
+                  <span>â€¢ Masjid & Mushalla</span>
                   <span
                     className={`text-[9px] transition-transform ${
                       openMenus.masjidNested ? 'rotate-180' : ''
                     }`}
                   >
-                    ▼
+                    â–¼
                   </span>
                 </button>
 
@@ -386,7 +387,7 @@ function SidebarContent() {
                               : 'text-emerald-300/80 hover:bg-emerald-800/40 hover:text-white'
                           }`}
                         >
-                          ◦ {sub.label}
+                          â—¦ {sub.label}
                         </Link>
                       );
                     })}
@@ -406,7 +407,7 @@ function SidebarContent() {
               className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-300 hover:bg-emerald-800/30 transition"
             >
               <div className="flex items-center gap-3">
-                <span className="text-base">⚙️</span>
+                <Settings className="w-4 h-4" />
                 <span>Manajemen</span>
               </div>
               <span
@@ -414,7 +415,7 @@ function SidebarContent() {
                   openMenus.manajemen ? 'rotate-180' : ''
                 }`}
               >
-                ▼
+                â–¼
               </span>
             </button>
             {openMenus.manajemen && (
@@ -428,7 +429,7 @@ function SidebarContent() {
                       : 'text-emerald-300/80 hover:bg-emerald-800/40 hover:text-white'
                   }`}
                 >
-                  • Profil KUA {kuaLabel ? `(${kuaLabel})` : ''}
+                  â€¢ Profil KUA {kuaLabel ? `(${kuaLabel})` : ''}
                 </Link>
               </div>
             )}
@@ -444,7 +445,7 @@ function SidebarContent() {
               className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-300 hover:bg-emerald-800/30 transition"
             >
               <div className="flex items-center gap-3">
-                <span className="text-base">⚙️</span>
+                <Settings className="w-4 h-4" />
                 <span>Manajemen</span>
               </div>
               <span
@@ -452,7 +453,7 @@ function SidebarContent() {
                   openMenus.manajemen ? 'rotate-180' : ''
                 }`}
               >
-                ▼
+                â–¼
               </span>
             </button>
             {openMenus.manajemen && (
@@ -466,7 +467,7 @@ function SidebarContent() {
                       : 'text-emerald-300/80 hover:bg-emerald-800/40 hover:text-white'
                   }`}
                 >
-                  • Kelola Layanan PTSP
+                  â€¢ Kelola Layanan PTSP
                 </Link>
                 <Link
                   href="/admin/users"
@@ -477,7 +478,7 @@ function SidebarContent() {
                       : 'text-emerald-300/80 hover:bg-emerald-800/40 hover:text-white'
                   }`}
                 >
-                  • Akun Pengguna
+                  â€¢ Akun Pengguna
                 </Link>
                 <Link
                   href="/admin/master"
@@ -488,7 +489,7 @@ function SidebarContent() {
                       : 'text-emerald-300/80 hover:bg-emerald-800/40 hover:text-white'
                   }`}
                 >
-                  • Master Data Utama
+                  â€¢ Master Data Utama
                 </Link>
               </div>
             )}
@@ -503,7 +504,7 @@ function SidebarContent() {
         {
           label: 'Profil Saya',
           href: '/pegawai',
-          icon: '🪪',
+          icon: 'ðŸªª',
           active: pathname.startsWith('/pegawai'),
         },
       ]
@@ -511,7 +512,7 @@ function SidebarContent() {
         {
           label: 'Dashboard',
           href: '/pegawai',
-          icon: '📊',
+          icon: 'ðŸ“Š',
           active: pathname === '/pegawai',
         },
         {
@@ -520,7 +521,7 @@ function SidebarContent() {
             isSuperAdmin || isAdminBimas
               ? '/admin/ptsp'
               : '/admin/master?section=profil_kantor',
-          icon: isSuperAdmin || isAdminBimas ? '📄' : '🏛️',
+          icon: isSuperAdmin || isAdminBimas ? 'ðŸ“„' : 'ðŸ›ï¸',
           active:
             pathname.startsWith('/admin/ptsp') ||
             (isAdminKua && pathname === '/admin/master'),
@@ -539,7 +540,7 @@ function SidebarContent() {
               {logoUrl ? (
                 <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
               ) : (
-                <span>🕌</span>
+                <span>ðŸ•Œ</span>
               )}
             </div>
             <div className="overflow-hidden flex-1">
@@ -559,7 +560,7 @@ function SidebarContent() {
 
         <div className="p-4 border-t border-emerald-900/60 bg-[#042217]/40 text-center">
           <p className="text-[10px] text-emerald-400/70 font-medium">
-            SIM Bimas Islam Kab. Pohuwato <br /> © 2026 Kemenag RI
+            SIM Bimas Islam Kab. Pohuwato <br /> Â© 2026 Kemenag RI
           </p>
         </div>
       </aside>
@@ -595,7 +596,7 @@ function SidebarContent() {
                 : 'text-emerald-200/80 hover:text-white hover:bg-emerald-800/40'
             }`}
           >
-            <span className="text-base leading-none mb-1">☰</span>
+            <span className="text-base leading-none mb-1">â˜°</span>
             <span>More</span>
           </button>
         </div>
@@ -616,13 +617,13 @@ function SidebarContent() {
                   {logoUrl ? (
                     <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
                   ) : (
-                    <span>🕌</span>
+                    <span>ðŸ•Œ</span>
                   )}
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-sm font-bold text-white truncate">Semua Menu</h3>
                   <p className="text-[11px] text-emerald-300/80 truncate">
-                    SIM Bimas Islam • Kemenag Pohuwato
+                    SIM Bimas Islam â€¢ Kemenag Pohuwato
                   </p>
                 </div>
               </div>
@@ -632,7 +633,7 @@ function SidebarContent() {
                 className="w-9 h-9 rounded-full bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 font-bold flex items-center justify-center text-sm shrink-0"
                 aria-label="Tutup menu"
               >
-                ✕
+                âœ•
               </button>
             </div>
 
@@ -642,7 +643,7 @@ function SidebarContent() {
 
             <div className="px-5 py-3 border-t border-emerald-900/70 bg-[#042217]/50 text-center pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
               <p className="text-[10px] text-emerald-400/70">
-                © 2026 Kemenag Kab. Pohuwato
+                Â© 2026 Kemenag Kab. Pohuwato
               </p>
             </div>
           </div>
