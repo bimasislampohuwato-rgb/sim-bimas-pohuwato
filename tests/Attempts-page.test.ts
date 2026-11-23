@@ -21,19 +21,9 @@ vi.mock('next/navigation', () => ({
   usePathname: vi.fn(() => '/'),
 }));
 
-describe('Loading and Error Boundaries', () => {
-  it('should import loading component', async () => {
-    const mod = await import('../app/loading');
-    expect(mod.default).toBeDefined();
-  });
-
-  it('should import error component', async () => {
-    const mod = await import('../app/error');
-    expect(mod.default).toBeDefined();
-  });
-
-  it('should import not-found component', async () => {
-    const mod = await import('../app/not-found');
+describe('Pegawai Page', () => {
+  it('should be importable', async () => {
+    const mod = await import('../app/employee/page');
     expect(mod.default).toBeDefined();
   });
 });
