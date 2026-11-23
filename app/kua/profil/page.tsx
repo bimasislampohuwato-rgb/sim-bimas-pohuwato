@@ -10,11 +10,13 @@ export default function ProfileKuaPage() {
   const [profile, setProfile] = useState<any>(null);
   const [kuaId, setKuaId] = useState<string | null>(null);
   const [kuaData, setKuaData] = useState<any>({
-    nama_kua: 'KUA Kecamatan Buntulia',
-    kepala_kua: 'H. Rais Abaidata, S.Ag, M.H',
-    nip_kepala: '197501012000031002',
-    email: 'kua.buntulia@kemenag.go.id',
-    website: 'https://buntulia.kemenag.go.id',
+    nama_kua: '',
+    kepala_kua: '',
+    nip_kepala: '',
+    alamat: '',
+    kontak: '',
+    email: '',
+    website: '',
     foto_kantor: '',
   });
 

@@ -504,7 +504,7 @@ function SidebarContent() {
         {
           label: 'Profil Saya',
           href: '/pegawai',
-          icon: 'ðŸªª',
+          icon: <Users className="w-5 h-5" />,
           active: pathname.startsWith('/pegawai'),
         },
       ]
@@ -512,7 +512,7 @@ function SidebarContent() {
         {
           label: 'Dashboard',
           href: '/pegawai',
-          icon: 'ðŸ“Š',
+          icon: <BarChart3 className="w-5 h-5" />,
           active: pathname === '/pegawai',
         },
         {
@@ -521,7 +521,7 @@ function SidebarContent() {
             isSuperAdmin || isAdminBimas
               ? '/admin/ptsp'
               : '/admin/master?section=profil_kantor',
-          icon: isSuperAdmin || isAdminBimas ? 'ðŸ“„' : 'ðŸ›ï¸',
+          icon: isSuperAdmin || isAdminBimas ? <FileText className="w-5 h-5" /> : <Building2 className="w-5 h-5" />,
           active:
             pathname.startsWith('/admin/ptsp') ||
             (isAdminKua && pathname === '/admin/master'),
