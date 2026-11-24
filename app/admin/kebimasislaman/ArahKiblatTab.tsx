@@ -2,31 +2,16 @@
 
 import React, { useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase/client';
+import type {
+  MasjidMushallaItem,
+  KiblatDataItem,
+  PejabatUtamaItem,
+} from '@/app/admin/kebimasislaman/_actions/kebimasislaman';
 
-export interface PejabatUtamaItem {
-  id?: string;
-  jabatan?: string;
-  nama_pejabat?: string;
-  nama?: string;
-  nip?: string;
-  urutan?: number;
-}
+type JenisLembagaKiblat = 'MASJID' | 'MUSHALLA';
 
-export interface SertifikatKiblatPayload {
+interface SertifikatKiblatPayload {
   [key: string]: any;
-}
-
-function pickJabatanKepala(list?: PejabatUtamaItem[]) {
-  if (!list || list.length === 0) {
-    return 'Kepala Kantor Kementerian Agama Kabupaten Pohuwato';
-  }
-  const sorted = [...list].sort((a, b) => (a.urutan ?? 99) - (b.urutan ?? 99));
-  const kakankemenag =
-    sorted.find((p) => (p.jabatan || '').toLowerCase().includes('kepala')) || sorted[0];
-  return (
-    kakankemenag?.jabatan ||
-    'Kepala Kantor Kementerian Agama Kabupaten Pohuwato'
-  );
 }
 
 function formatTanggalIndo(isoOrDate?: string | null): string {
@@ -45,6 +30,32 @@ function sanitizeFilePart(input: string): string {
     .replace(/[^a-zA-Z0-9_-]+/g, '_')
     .replace(/^_+|_+$/g, '')
     .slice(0, 60);
+}
+
+function pickJabatanKepala(list?: PejabatUtamaItem[]) {
+  if (!list || list.length === 0) {
+    return 'Kepala Kantor Kementerian Agama Kabupaten Pohuwato';
+  }
+  const sorted = [...list].sort((a, b) => (a.urutan ?? 99) - (b.urutan ?? 99));
+  const kakankemenag =
+    sorted.find((p) => (p.jabatan || '').toLowerCase().includes('kepala')) || sorted[0];
+  return (
+    kakankemenag?.jabatan ||
+    'Kepala Kantor Kementerian Agama Kabupaten Pohuwato'
+  );
+}
+interface ArahKiblatTabProps {
+  masjidList: MasjidMushallaItem[];
+  kiblatMap: Record<string, KiblatDataItem>;
+  kecamatanOptions: string[];
+  kuaKecamatanLock: string | null;
+  activeMode: string;
+  pejabatUtamaList: PejabatUtamaItem[];
+  loading: boolean;
+  onRefresh: () => Promise<void> | void;
+  onNotify: (type: 'success' | 'error', title: string, message: string) => void;
+  onOpenImportKiblat: () => void;
+  onDownloadTemplateKiblat: () => void;
 }
 
 // Deterministic QR-like verification matrix (25x25 with finder patterns + data bits)
@@ -812,59 +823,7 @@ function SertifikatKiblatModal({
     </div>
   );
 }
-export type JenisLembagaKiblat = 'MASJID' | 'MUSHALLA';
-
-export interface KiblatMasjidItem {
-  id: string;
-  jenis_lembaga?: JenisLembagaKiblat | null;
-  id_masjid_simas: string | null;
-  id_baru_simas: string | null;
-  nama_masjid: string;
-  kecamatan: string | null;
-  alamat: string | null;
-  latitude_simas: number | null;
-  longitude_simas: number | null;
-}
-
-export interface KiblatDataItem {
-  id?: string;
-  masjid_id: string | null;
-  id_masjid_simas: string | null;
-  nama_masjid: string;
-  kecamatan: string | null;
-  latitude: number | null;
-  lintang_utara: string;
-  longitude: number | null;
-  bujur_timur: string;
-  azimut_bangunan: number | null;
-  elevasi_tempat: number | null;
-  azimut_kiblat: number | null;
-  penyimpangan: number | null;
-  status_penyimpangan: string;
-  tanggal_pengukuran: string;
-  foto_kalibrasi_url: string;
-  catatan: string;
-  nomor_register?: string | null;
-  kode_verifikasi?: string | null;
-  status_verifikasi?: 'MENUNGGU_REGISTER' | 'TERVERIFIKASI' | string | null;
-  tanggal_terbit_sertifikat?: string | null;
-}
-
-interface ArahKiblatTabProps {
-  masjidList: KiblatMasjidItem[];
-  kiblatMap: Record<string, KiblatDataItem>;
-  kecamatanOptions: string[];
-  kuaKecamatanLock: string | null;
-  activeMode: string;
-  pejabatUtamaList: PejabatUtamaItem[];
-  loading: boolean;
-  onRefresh: () => Promise<void> | void;
-  onNotify: (type: 'success' | 'error', title: string, message: string) => void;
-  onOpenImportKiblat: () => void;
-  onDownloadTemplateKiblat: () => void;
-}
-
-function detectJenisLembaga(m: KiblatMasjidItem): JenisLembagaKiblat {
+function detectJenisLembaga(m: MasjidMushallaItem): JenisLembagaKiblat {
   if (m.jenis_lembaga === 'MUSHALLA' || m.jenis_lembaga === 'MASJID') {
     return m.jenis_lembaga;
   }
@@ -1007,7 +966,7 @@ export default function ArahKiblatTab({
   const canAssignRegister =
     activeMode === 'super_admin' || activeMode === 'admin_bimas';
 
-  const getKiblatForMasjid = (m: KiblatMasjidItem): KiblatDataItem | undefined => {
+  const getKiblatForMasjid = (m: MasjidMushallaItem): KiblatDataItem | undefined => {
     return (
       kiblatMap[m.id] ||
       (m.id_masjid_simas ? kiblatMap[m.id_masjid_simas] : undefined) ||
@@ -1075,7 +1034,7 @@ export default function ArahKiblatTab({
     return hitungPenyimpangan(parseNumberOrNull(azimutBangunan), parseNumberOrNull(azimutKiblat));
   }, [azimutBangunan, azimutKiblat]);
 
-  const fillFormFromMasjid = (m?: KiblatMasjidItem) => {
+  const fillFormFromMasjid = (m?: MasjidMushallaItem) => {
     const target = m || filteredList[0] || scopedMasjid[0];
     const existing = target ? getKiblatForMasjid(target) : undefined;
     setSelectedMasjidId(target?.id || '');
@@ -1117,7 +1076,7 @@ export default function ArahKiblatTab({
     setCatatan(existing?.catatan || '');
   };
 
-  const openCreateOrEdit = (m?: KiblatMasjidItem) => {
+  const openCreateOrEdit = (m?: MasjidMushallaItem) => {
     fillFormFromMasjid(m);
     setShowFormModal(true);
   };
@@ -1205,7 +1164,7 @@ export default function ArahKiblatTab({
     }
   };
 
-  const openRegisterModal = (m: KiblatMasjidItem, k: KiblatDataItem | undefined) => {
+  const openRegisterModal = (m: MasjidMushallaItem, k: KiblatDataItem | undefined) => {
     if (!k?.id) {
       onNotify(
         'error',
@@ -1263,7 +1222,7 @@ export default function ArahKiblatTab({
   };
 
   const handleOpenSertifikat = (
-    m: KiblatMasjidItem,
+    m: MasjidMushallaItem,
     k: KiblatDataItem | undefined,
     index: number
   ) => {

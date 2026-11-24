@@ -2,10 +2,14 @@
 
 import React, { useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase/client';
+import type {
+  MasjidMushallaItem,
+  SdmDataItem,
+} from '@/app/admin/kebimasislaman/_actions/kebimasislaman';
 
-export type JenisLembagaSdm = 'MASJID' | 'MUSHALLA';
+type JenisLembagaSdm = 'MASJID' | 'MUSHALLA';
 
-export interface SdmMasjidItem {
+interface SdmMasjidItem {
   id: string;
   jenis_lembaga?: JenisLembagaSdm | null;
   id_masjid_simas: string | null;
@@ -15,27 +19,8 @@ export interface SdmMasjidItem {
   alamat: string | null;
 }
 
-export interface SdmDataItem {
-  id?: string;
-  masjid_id: string | null;
-  id_masjid_simas: string | null;
-  nama_masjid: string;
-  kecamatan: string | null;
-  jumlah_pengurus: number;
-  ketua_pengurus: string;
-  no_hp_ketua: string;
-  nama_sekretaris: string;
-  no_hp_sekretaris: string;
-  daftar_imam: string[];
-  daftar_khatib: string[];
-  daftar_muazin: string[];
-  jumlah_remaja: number;
-  ketua_remaja: string;
-  kategori_jamaah: string;
-}
-
 interface SdmMasjidTabProps {
-  masjidList: SdmMasjidItem[];
+  masjidList: MasjidMushallaItem[];
   sdmMap: Record<string, SdmDataItem>;
   kecamatanOptions: string[];
   kuaKecamatanLock: string | null;
