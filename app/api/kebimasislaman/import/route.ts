@@ -22,6 +22,9 @@ export async function POST(request: Request) {
     } else if (mode === 'arah_kiblat') {
       tableName = 'masjid_arah_kiblat';
       onConflict = 'masjid_id';
+    } else if (mode === 'data_lain') {
+      tableName = 'kebimas_data_lain';
+      onConflict = 'nomor_tiket_ptsp';
     } else {
       return NextResponse.json({ error: 'Mode tidak dikenali' }, { status: 400 });
     }

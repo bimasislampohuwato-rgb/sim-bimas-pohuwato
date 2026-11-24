@@ -5,7 +5,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 // 1. Ambil daftar pegawai yang belum punya akun login di tabel profiles
 export async function getPegawaiTanpaAkun() {
   try {
-    const { data: pegawaiList, error: pegError } = await supabaseAdmin.from('Nama').select('*');
+    const { data: pegawaiList, error: pegError } = await supabaseAdmin.from('pegawai').select('*');
     if (pegError) throw pegError;
 
     const { data: profilesList, error: profError } = await supabaseAdmin.from('profiles').select('nip, email');
@@ -54,7 +54,7 @@ export async function createAkunPegawai(params: {
       email: emailSimulasi,
       nip: params.nip,
       nama_lengkap: params.namaLengkap,
-      role: 'nama',
+      role: 'pegawai',
       jabatan_admin: jabatanNormalized,
       kua_wilayah: kuaNormalized,
     });
@@ -80,7 +80,7 @@ export async function createAkunMassalPegawai() {
 
     for (const peg of pegawaiList) {
       const nip = peg.nip;
-      const nama = peg.nama_lengkap || peg.namaTanpaGelar || 'Pegawai Kemenag';
+      const nama = peg.nama_lengkap || peg.nama_tanpa_gelar || 'Pegawai Kemenag';
       if (!nip) continue;
 
       const emailSimulasi = `${nip}@kemenagpohuwato.go.id`;
@@ -100,7 +100,7 @@ export async function createAkunMassalPegawai() {
           email: emailSimulasi,
           nip: nip,
           nama_lengkap: nama,
-          role: 'nama',
+          role: 'pegawai',
           jabatan_admin: null,
           kua_wilayah: null,
         });
