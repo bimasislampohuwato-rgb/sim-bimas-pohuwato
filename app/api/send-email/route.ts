@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import { requireApiAdmin } from '@/lib/auth/api-auth';
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -12,6 +13,8 @@ const transporter = nodemailer.createTransport({
 });
 
 export async function POST(request: Request) {
+  const auth = await requireApiAdmin();
+  if ('response' in auth) return auth.response;
   try {
     const body = await request.json();
     const {

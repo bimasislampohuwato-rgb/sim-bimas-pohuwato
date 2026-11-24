@@ -1,7 +1,10 @@
 import { updatePtspStatus } from '@/app/ptsp/_actions/ptsp';
+import { requireApiAdmin } from '@/lib/auth/api-auth';
 import { NextResponse } from 'next/server';
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await requireApiAdmin();
+  if ('response' in auth) return auth.response;
   try {
     const { id } = await params;
     const payload = await request.json();

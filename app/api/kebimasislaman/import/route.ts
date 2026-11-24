@@ -1,8 +1,11 @@
 import { createClient } from '@/lib/supabase/server';
+import { requireApiAdmin } from '@/lib/auth/api-auth';
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 
 export async function POST(request: Request) {
+  const auth = await requireApiAdmin();
+  if ('response' in auth) return auth.response;
   try {
     const { mode, payloads } = await request.json();
     const supabase = await createClient();

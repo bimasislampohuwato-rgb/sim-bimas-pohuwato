@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import Sidebar from '@/components/Sidebar';
+import RiwayatJabatanSection from '@/components/pegawai/RiwayatJabatanSection';
+import RiwayatPendidikanSection from '@/components/pegawai/RiwayatPendidikanSection';
+import DataKeluargaSection from '@/components/pegawai/DataKeluargaSection';
 import type { PegawaiTambahPageData } from '@/app/pegawai/tambah/_actions/pegawai-tambah';
 
 interface PegawaiTambahClientProps {
@@ -482,298 +485,37 @@ export default function PegawaiTambahClient({ initialData, initialError }: Pegaw
 
                 {/* BAGIAN 2: RIWAYAT KEPEGAWAIAN & JABATAN */}
                 {activeTab === 'kepegawaian' && (
-                  <div className="space-y-6">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-100 pb-4 gap-3">
-                      <div>
-                        <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Langkah 2 dari 5</span>
-                        <h3 className="text-lg font-bold text-gray-900 mt-0.5">Riwayat Jabatan & Golongan</h3>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={tambahBarisJabatan}
-                        className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 px-3.5 py-2 rounded-xl text-xs font-bold transition"
-                      >
-                        + Tambah Riwayat Jabatan
-                      </button>
-                    </div>
-
-                    {riwayatJabatan.map((item, index) => (
-                      <div key={index} className="p-5 bg-gray-50 border border-gray-200 rounded-2xl space-y-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-lg">
-                            Riwayat Jabatan #{index + 1}
-                          </span>
-                          {riwayatJabatan.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => hapusBarisJabatan(index)}
-                              className="text-red-600 hover:text-red-800 text-xs font-semibold"
-                            >
-                              Hapus Baris
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Pangkat & Golongan Ruang</label>
-                            <select
-                              value={item.pangkatGolongan}
-                              onChange={(e) => handleJabatanChange(index, 'pangkatGolongan', e.target.value)}
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            >
-                              <option value="">-- Pilih Golongan --</option>
-                              {masterGolongan.map((gol, i) => (
-                                <option key={i} value={gol}>{gol}</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Jabatan</label>
-                            <select
-                              value={item.jabatan}
-                              onChange={(e) => handleJabatanChange(index, 'jabatan', e.target.value)}
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            >
-                              <option value="">-- Pilih Jabatan --</option>
-                              {masterJabatanList.map((jab, i) => (
-                                <option key={i} value={jab}>{jab}</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Unit Kerja / Penempatan</label>
-                            <select
-                              value={item.unitKerja}
-                              onChange={(e) => handleJabatanChange(index, 'unitKerja', e.target.value)}
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            >
-                              <option value="">-- Pilih Unit Kerja / KUA --</option>
-                              {masterKuaList.map((kua, i) => (
-                                <option key={i} value={kua}>{kua}</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Nomor SK</label>
-                            <input
-                              type="text"
-                              value={item.nomorSk}
-                              onChange={(e) => handleJabatanChange(index, 'nomorSk', e.target.value)}
-                              placeholder="Contoh: SK/123/Kemenag/2025"
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Tanggal SK</label>
-                            <input
-                              type="date"
-                              value={item.tanggalSk}
-                              onChange={(e) => handleJabatanChange(index, 'tanggalSk', e.target.value)}
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">TMT Jabatan</label>
-                            <input
-                              type="date"
-                              value={item.tmt}
-                              onChange={(e) => handleJabatanChange(index, 'tmt', e.target.value)}
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500 font-semibold text-emerald-800"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Angka Kredit</label>
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={item.angkaKredit}
-                              onChange={(e) => handleJabatanChange(index, 'angkaKredit', e.target.value)}
-                              placeholder="Contoh: 150.00"
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-
-                          <div className="sm:col-span-2">
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Upload File SK (PDF / Gambar)</label>
-                            <input
-                              type="file"
-                              accept=".pdf,image/*"
-                              onChange={(e) => handleFileChange(index, e)}
-                              className="w-full border border-gray-300 rounded-xl px-3 py-1.5 text-xs bg-white text-gray-500 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
-                            />
-                            {item.fileSk && (
-                              <p className="text-xs text-emerald-600 mt-1 font-medium">📎 File dipilih: {(item.fileSk as File).name}</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <RiwayatJabatanSection
+                    items={riwayatJabatan}
+                    masterGolongan={masterGolongan}
+                    masterJabatanList={masterJabatanList}
+                    masterKuaList={masterKuaList}
+                    onChange={handleJabatanChange}
+                    onFileChange={handleFileChange}
+                    onTambah={tambahBarisJabatan}
+                    onHapus={hapusBarisJabatan}
+                  />
                 )}
 
                 {/* BAGIAN 3: RIWAYAT PENDIDIKAN */}
                 {activeTab === 'pendidikan' && (
-                  <div className="space-y-6">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-100 pb-4 gap-3">
-                      <div>
-                        <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Langkah 3 dari 5</span>
-                        <h3 className="text-lg font-bold text-gray-900 mt-0.5">Riwayat Pendidikan Formal (SD s.d. S3)</h3>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={tambahBarisPendidikan}
-                        className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 px-3.5 py-2 rounded-xl text-xs font-bold transition"
-                      >
-                        + Tambah Riwayat Pendidikan
-                      </button>
-                    </div>
-
-                    {riwayatPendidikan.map((item, index) => (
-                      <div key={index} className="p-5 bg-gray-50 border border-gray-200 rounded-2xl space-y-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-lg">
-                            Pendidikan #{index + 1}
-                          </span>
-                          {riwayatPendidikan.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => hapusBarisPendidikan(index)}
-                              className="text-red-600 hover:text-red-800 text-xs font-semibold"
-                            >
-                              Hapus Baris
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Jenjang Pendidikan</label>
-                            <select
-                              value={item.jenjang}
-                              onChange={(e) => handlePendidikanChange(index, 'jenjang', e.target.value)}
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            >
-                              <option value="">-- Pilih Jenjang --</option>
-                              {masterPendidikan.map((p, i) => (
-                                <option key={i} value={p}>{p}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Nama Sekolah / Universitas</label>
-                            <input
-                              type="text"
-                              value={item.namaSekolah}
-                              onChange={(e) => handlePendidikanChange(index, 'namaSekolah', e.target.value)}
-                              placeholder="Contoh: MIN Marisa / IAIN Gorontalo"
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Tahun Lulus</label>
-                            <input
-                              type="text"
-                              value={item.tahunLulus}
-                              onChange={(e) => handlePendidikanChange(index, 'tahunLulus', e.target.value)}
-                              placeholder="Contoh: 2018"
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <RiwayatPendidikanSection
+                    items={riwayatPendidikan}
+                    masterPendidikan={masterPendidikan}
+                    onChange={handlePendidikanChange}
+                    onTambah={tambahBarisPendidikan}
+                    onHapus={hapusBarisPendidikan}
+                  />
                 )}
 
                 {/* BAGIAN 4: DATA KELUARGA */}
                 {activeTab === 'keluarga' && (
-                  <div className="space-y-6">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-100 pb-4 gap-3">
-                      <div>
-                        <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Langkah 4 dari 5</span>
-                        <h3 className="text-lg font-bold text-gray-900 mt-0.5">Data Keluarga (Pasangan, Anak, Orang Tua)</h3>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={tambahBarisKeluarga}
-                        className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 px-3.5 py-2 rounded-xl text-xs font-bold transition"
-                      >
-                        + Tambah Anggota Keluarga
-                      </button>
-                    </div>
-
-                    {dataKeluarga.map((item, index) => (
-                      <div key={index} className="p-5 bg-gray-50 border border-gray-200 rounded-2xl space-y-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-lg">
-                            Anggota Keluarga #{index + 1}
-                          </span>
-                          {dataKeluarga.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => hapusBarisKeluarga(index)}
-                              className="text-red-600 hover:text-red-800 text-xs font-semibold"
-                            >
-                              Hapus Baris
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Hubungan Keluarga</label>
-                            <select
-                              value={item.hubungan}
-                              onChange={(e) => handleKeluargaChange(index, 'hubungan', e.target.value)}
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            >
-                              <option value="Suami/Istri">Suami / Istri</option>
-                              <option value="Anak Kandung">Anak Kandung</option>
-                              <option value="Ayah Kandung">Ayah Kandung</option>
-                              <option value="Ibu Kandung">Ibu Kandung</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Nama Lengkap</label>
-                            <input
-                              type="text"
-                              value={item.nama}
-                              onChange={(e) => handleKeluargaChange(index, 'nama', e.target.value)}
-                              placeholder="Nama lengkap anggota keluarga"
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Tempat, Tanggal Lahir</label>
-                            <input
-                              type="text"
-                              value={item.tempatTanggalLahir}
-                              onChange={(e) => handleKeluargaChange(index, 'tempatTanggalLahir', e.target.value)}
-                              placeholder="Contoh: Marisa, 12-05-1985"
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Pekerjaan</label>
-                            <input
-                              type="text"
-                              value={item.pekerjaan}
-                              onChange={(e) => handleKeluargaChange(index, 'pekerjaan', e.target.value)}
-                              placeholder="Contoh: PNS / Ibu Rumah Tangga / Pelajar"
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <DataKeluargaSection
+                    items={dataKeluarga}
+                    onChange={handleKeluargaChange}
+                    onTambah={tambahBarisKeluarga}
+                    onHapus={hapusBarisKeluarga}
+                  />
                 )}
 
                 {/* BAGIAN 5: RIWAYAT LAINNYA */}

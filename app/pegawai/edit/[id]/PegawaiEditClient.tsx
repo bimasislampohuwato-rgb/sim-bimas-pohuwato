@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { updatePegawai } from '@/app/pegawai/edit/[id]/_actions/pegawai-edit';
 import Sidebar from '@/components/Sidebar';
+import RiwayatJabatanSection from '@/components/pegawai/RiwayatJabatanSection';
+import RiwayatPendidikanSection from '@/components/pegawai/RiwayatPendidikanSection';
+import DataKeluargaSection from '@/components/pegawai/DataKeluargaSection';
 import type { PegawaiEditPageData } from '@/app/pegawai/edit/[id]/_actions/pegawai-edit';
 
 interface PegawaiEditClientProps {
@@ -22,7 +25,6 @@ export default function PegawaiEditClient({ initialData, initialError, pegawaiId
 
   const pegawai = initialData?.pegawai;
 
-  // Master Referensi Dinamis dari Supabase + Fallback
   const [masterJabatanList] = useState<string[]>(initialData?.masterJabatanList || [
     'Kepala Seksi Bimas Islam',
     'Kepala KUA Kecamatan',
@@ -46,17 +48,16 @@ export default function PegawaiEditClient({ initialData, initialError, pegawaiId
   const masterGolongan = [
     'II/a (Pengatur Muda)', 'II/b (Pengatur Muda Tk. I)', 'II/c (Pengatur)', 'II/d (Pengatur Tk. I)',
     'III/a (Penata Muda)', 'III/b (Penata Muda Tk. I)', 'III/c (Penata)', 'III/d (Penata Tk. I)',
-    'IV/a (Pembina)', 'IV/b (Pembina Tk. I)'
+    'IV/a (Pembina)', 'IV/b (Pembina Tk. I)',
   ];
   const masterPendidikan = ['SD / Sederajat', 'SMP / Sederajat', 'SMA / MA / Sederajat', 'D-III', 'S-1 / D-IV', 'S-2', 'S-3'];
 
-  // State Form Utama - Populated from initialData
   const [formData, setFormData] = useState({
     nik: pegawai?.nik || '',
     nip: pegawai?.nip || '',
-    namaTanpaGelar: pegawai?.nama_lengkap || '',
-    gelarDepan: '',
-    gelarBelakang: '',
+    namaTanpaGelar: pegawai?.nama_tanpa_gelar || '',
+    gelarDepan: pegawai?.gelar_depan || '',
+    gelarBelakang: pegawai?.gelar_belakang || '',
     jenisKelamin: pegawai?.jenis_kelamin || 'L',
     tempatLahir: pegawai?.tempat_lahir || '',
     tanggalLahir: pegawai?.tanggal_lahir || '',
@@ -65,22 +66,27 @@ export default function PegawaiEditClient({ initialData, initialError, pegawaiId
     alamat: pegawai?.alamat || '',
     noHp: pegawai?.no_hp || '',
     statusPerkawinan: pegawai?.status_perkawinan || 'Kawin',
-    tmtCpns: '',
-    tmtPns: '',
+    tmtCpns: pegawai?.tmt_cpns || '',
+    tmtPns: pegawai?.tmt_pns || '',
   });
 
-  // State Riwayat Dinamis (empty for edit - could be populated from separate queries)
-  const [riwayatJabatan, setRiwayatJabatan] = useState([
-    { pangkatGolongan: '', jabatan: '', unitKerja: '', nomorSk: '', tanggalSk: '', tmt: '', angkaKredit: '', fileSk: null }
-  ]);
+  const [riwayatJabatan, setRiwayatJabatan] = useState(
+    initialData?.riwayatJabatan && initialData.riwayatJabatan.length > 0
+      ? initialData.riwayatJabatan.map((r) => ({ ...r, fileSk: null as File | null }))
+      : [{ pangkatGolongan: '', jabatan: '', unitKerja: '', nomorSk: '', tanggalSk: '', tmt: '', angkaKredit: '', fileSk: null as File | null }]
+  );
 
-  const [riwayatPendidikan, setRiwayatPendidikan] = useState([
-    { jenjang: '', namaSekolah: '', tahunLulus: '' }
-  ]);
+  const [riwayatPendidikan, setRiwayatPendidikan] = useState(
+    initialData?.riwayatPendidikan && initialData.riwayatPendidikan.length > 0
+      ? initialData.riwayatPendidikan
+      : [{ jenjang: '', namaSekolah: '', tahunLulus: '' }]
+  );
 
-  const [dataKeluarga, setDataKeluarga] = useState([
-    { hubungan: 'Suami/Istri', nama: '', tempatTanggalLahir: '', pekerjaan: '' }
-  ]);
+  const [dataKeluarga, setDataKeluarga] = useState(
+    initialData?.dataKeluarga && initialData.dataKeluarga.length > 0
+      ? initialData.dataKeluarga
+      : [{ hubungan: 'Suami/Istri', nama: '', tempatTanggalLahir: '', pekerjaan: '' }]
+  );
 
   const menuSections = [
     { id: 'identitas', step: '01', label: 'Identitas Pribadi', desc: 'NIK, NIP, Gelar & Kontak', icon: '👤' },
@@ -96,7 +102,6 @@ export default function PegawaiEditClient({ initialData, initialError, pegawaiId
     setFormData({ ...formData, [e.target.name]: e.target.value });
   }, [formData]);
 
-  // Handler Dinamis Riwayat Jabatan
   const handleJabatanChange = useCallback((index: number, field: string, value: any) => {
     setRiwayatJabatan(prev => {
       const updated = [...prev];
@@ -119,7 +124,6 @@ export default function PegawaiEditClient({ initialData, initialError, pegawaiId
     setRiwayatJabatan(prev => prev.filter((_, i) => i !== index));
   }, []);
 
-  // Handler Riwayat Pendidikan
   const handlePendidikanChange = useCallback((index: number, field: string, value: string) => {
     setRiwayatPendidikan(prev => {
       const updated = [...prev];
@@ -136,7 +140,6 @@ export default function PegawaiEditClient({ initialData, initialError, pegawaiId
     setRiwayatPendidikan(prev => prev.filter((_, i) => i !== index));
   }, []);
 
-  // Handler Data Keluarga
   const handleKeluargaChange = useCallback((index: number, field: string, value: string) => {
     setDataKeluarga(prev => {
       const updated = [...prev];
@@ -153,7 +156,6 @@ export default function PegawaiEditClient({ initialData, initialError, pegawaiId
     setDataKeluarga(prev => prev.filter((_, i) => i !== index));
   }, []);
 
-  // Preview Nama Gabungan dengan Gelar
   const namaLengkapFinal = `${formData.gelarDepan ? formData.gelarDepan + ' ' : ''}${formData.namaTanpaGelar}${formData.gelarBelakang ? ', ' + formData.gelarBelakang : ''}`.trim();
   const inisialNama = formData.namaTanpaGelar
     ? formData.namaTanpaGelar.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
@@ -179,12 +181,25 @@ export default function PegawaiEditClient({ initialData, initialError, pegawaiId
       unit_kerja: riwayatJabatan[0]?.unitKerja || '',
       pangkat_gol: riwayatJabatan[0]?.pangkatGolongan || null,
       tmt_jabatan: riwayatJabatan[0]?.tmt || null,
+      tmt_cpns: formData.tmtCpns || null,
+      tmt_pns: formData.tmtPns || null,
       pendidikan_terakhir: riwayatPendidikan[0]?.jenjang || null,
       jurusan: riwayatPendidikan[0]?.namaSekolah || null,
       tahun_lulus: riwayatPendidikan[0]?.tahunLulus || null,
       status_perkawinan: formData.statusPerkawinan,
-      nama_pasangan: dataKeluarga.find(k => k.hubungan === 'Suami/Istri')?.nama || null,
-      jumlah_anak: dataKeluarga.filter(k => k.hubungan === 'Anak Kandung').length,
+      nama_pasangan: dataKeluarga.find((k) => k.hubungan === 'Suami/Istri')?.nama || null,
+      jumlah_anak: dataKeluarga.filter((k) => k.hubungan === 'Anak Kandung').length,
+      riwayatJabatan: riwayatJabatan.map((r) => ({
+        pangkatGolongan: r.pangkatGolongan,
+        jabatan: r.jabatan,
+        unitKerja: r.unitKerja,
+        nomorSk: r.nomorSk,
+        tanggalSk: r.tanggalSk,
+        tmt: r.tmt,
+        angkaKredit: r.angkaKredit,
+      })),
+      riwayatPendidikan,
+      dataKeluarga,
     };
 
     try {
@@ -232,7 +247,6 @@ export default function PegawaiEditClient({ initialData, initialError, pegawaiId
       <main className="flex-1 overflow-y-auto p-6 sm:p-8">
         <div className="max-w-7xl mx-auto">
 
-          {/* Top Bar Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <div>
               <div className="flex items-center gap-2 text-xs text-emerald-700 font-semibold mb-1">
@@ -253,13 +267,10 @@ export default function PegawaiEditClient({ initialData, initialError, pegawaiId
             </Link>
           </div>
 
-          {/* Layout 2 Kolom: Sub-Sidebar Vertikal (Kiri) + Form Konten (Kanan) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-            {/* KOLOM KIRI: CONTEXTUAL SUB-SIDEBAR */}
             <aside className="lg:col-span-4 xl:col-span-3 space-y-4 lg:sticky lg:top-6">
 
-              {/* Kartu Ringkasan Pegawai (Live Preview) */}
               <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs">
                 <div className="flex items-center gap-3.5">
                   <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-base shrink-0 shadow-sm">
@@ -277,7 +288,6 @@ export default function PegawaiEditClient({ initialData, initialError, pegawaiId
                 </div>
               </div>
 
-              {/* Menu Navigasi Vertikal */}
               <nav className="bg-white rounded-2xl border border-gray-200 p-2.5 shadow-xs space-y-1">
                 <div className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">
                   Bagian Formulir
@@ -311,7 +321,6 @@ export default function PegawaiEditClient({ initialData, initialError, pegawaiId
                 })}
               </nav>
 
-              {/* Tombol Simpan Cepat di Sidebar */}
               <div className="hidden lg:block bg-emerald-50/70 rounded-2xl border border-emerald-200 p-4">
                 <p className="text-xs text-emerald-900 font-medium mb-3 leading-relaxed">
                   Pastikan <strong>NIK</strong>, <strong>NIP</strong>, dan <strong>Nama Lengkap</strong> sudah terisi sebelum menyimpan.
@@ -328,11 +337,9 @@ export default function PegawaiEditClient({ initialData, initialError, pegawaiId
 
             </aside>
 
-            {/* KOLOM KANAN: AREA FORMULIR */}
             <div className="lg:col-span-8 xl:col-span-9 bg-white rounded-2xl shadow-xs border border-gray-200 overflow-hidden">
               <form onSubmit={handleSubmit} className="p-6 sm:p-8">
 
-                {/* BAGIAN 1: IDENTITAS PRIBADI */}
                 {activeTab === 'identitas' && (
                   <div className="space-y-6">
                     <div className="border-b border-gray-100 pb-4">
@@ -493,303 +500,38 @@ export default function PegawaiEditClient({ initialData, initialError, pegawaiId
                   </div>
                 )}
 
-                {/* BAGIAN 2: RIWAYAT KEPEGAWAIAN & JABATAN */}
                 {activeTab === 'kepegawaian' && (
-                  <div className="space-y-6">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-100 pb-4 gap-3">
-                      <div>
-                        <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Langkah 2 dari 5</span>
-                        <h3 className="text-lg font-bold text-gray-900 mt-0.5">Riwayat Jabatan & Golongan</h3>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={tambahBarisJabatan}
-                        className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 px-3.5 py-2 rounded-xl text-xs font-bold transition"
-                      >
-                        + Tambah Riwayat Jabatan
-                      </button>
-                    </div>
-
-                    {riwayatJabatan.map((item, index) => (
-                      <div key={index} className="p-5 bg-gray-50 border border-gray-200 rounded-2xl space-y-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-lg">
-                            Riwayat Jabatan #{index + 1}
-                          </span>
-                          {riwayatJabatan.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => hapusBarisJabatan(index)}
-                              className="text-red-600 hover:text-red-800 text-xs font-semibold"
-                            >
-                              Hapus Baris
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Pangkat & Golongan Ruang</label>
-                            <select
-                              value={item.pangkatGolongan}
-                              onChange={(e) => handleJabatanChange(index, 'pangkatGolongan', e.target.value)}
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            >
-                              <option value="">-- Pilih Golongan --</option>
-                              {masterGolongan.map((gol, i) => (
-                                <option key={i} value={gol}>{gol}</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Jabatan</label>
-                            <select
-                              value={item.jabatan}
-                              onChange={(e) => handleJabatanChange(index, 'jabatan', e.target.value)}
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            >
-                              <option value="">-- Pilih Jabatan --</option>
-                              {masterJabatanList.map((jab, i) => (
-                                <option key={i} value={jab}>{jab}</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Unit Kerja / Penempatan</label>
-                            <select
-                              value={item.unitKerja}
-                              onChange={(e) => handleJabatanChange(index, 'unitKerja', e.target.value)}
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            >
-                              <option value="">-- Pilih Unit Kerja / KUA --</option>
-                              {masterKuaList.map((kua, i) => (
-                                <option key={i} value={kua}>{kua}</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Nomor SK</label>
-                            <input
-                              type="text"
-                              value={item.nomorSk}
-                              onChange={(e) => handleJabatanChange(index, 'nomorSk', e.target.value)}
-                              placeholder="Contoh: SK/123/Kemenag/2025"
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Tanggal SK</label>
-                            <input
-                              type="date"
-                              value={item.tanggalSk}
-                              onChange={(e) => handleJabatanChange(index, 'tanggalSk', e.target.value)}
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">TMT Jabatan</label>
-                            <input
-                              type="date"
-                              value={item.tmt}
-                              onChange={(e) => handleJabatanChange(index, 'tmt', e.target.value)}
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500 font-semibold text-emerald-800"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Angka Kredit</label>
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={item.angkaKredit}
-                              onChange={(e) => handleJabatanChange(index, 'angkaKredit', e.target.value)}
-                              placeholder="Contoh: 150.00"
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-
-                          <div className="sm:col-span-2">
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Upload File SK (PDF / Gambar)</label>
-                            <input
-                              type="file"
-                              accept=".pdf,image/*"
-                              onChange={(e) => handleFileChange(index, e)}
-                              className="w-full border border-gray-300 rounded-xl px-3 py-1.5 text-xs bg-white text-gray-500 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
-                            />
-                            {item.fileSk && (
-                              <p className="text-xs text-emerald-600 mt-1 font-medium">📎 File dipilih: {(item.fileSk as File).name}</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <RiwayatJabatanSection
+                    items={riwayatJabatan}
+                    masterGolongan={masterGolongan}
+                    masterJabatanList={masterJabatanList}
+                    masterKuaList={masterKuaList}
+                    onChange={handleJabatanChange}
+                    onFileChange={handleFileChange}
+                    onTambah={tambahBarisJabatan}
+                    onHapus={hapusBarisJabatan}
+                  />
                 )}
 
-                {/* BAGIAN 3: RIWAYAT PENDIDIKAN */}
                 {activeTab === 'pendidikan' && (
-                  <div className="space-y-6">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-100 pb-4 gap-3">
-                      <div>
-                        <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Langkah 3 dari 5</span>
-                        <h3 className="text-lg font-bold text-gray-900 mt-0.5">Riwayat Pendidikan Formal (SD s.d. S3)</h3>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={tambahBarisPendidikan}
-                        className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 px-3.5 py-2 rounded-xl text-xs font-bold transition"
-                      >
-                        + Tambah Riwayat Pendidikan
-                      </button>
-                    </div>
-
-                    {riwayatPendidikan.map((item, index) => (
-                      <div key={index} className="p-5 bg-gray-50 border border-gray-200 rounded-2xl space-y-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-lg">
-                            Pendidikan #{index + 1}
-                          </span>
-                          {riwayatPendidikan.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => hapusBarisPendidikan(index)}
-                              className="text-red-600 hover:text-red-800 text-xs font-semibold"
-                            >
-                              Hapus Baris
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Jenjang Pendidikan</label>
-                            <select
-                              value={item.jenjang}
-                              onChange={(e) => handlePendidikanChange(index, 'jenjang', e.target.value)}
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            >
-                              <option value="">-- Pilih Jenjang --</option>
-                              {masterPendidikan.map((p, i) => (
-                                <option key={i} value={p}>{p}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Nama Sekolah / Universitas</label>
-                            <input
-                              type="text"
-                              value={item.namaSekolah}
-                              onChange={(e) => handlePendidikanChange(index, 'namaSekolah', e.target.value)}
-                              placeholder="Contoh: MIN Marisa / IAIN Gorontalo"
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Tahun Lulus</label>
-                            <input
-                              type="text"
-                              value={item.tahunLulus}
-                              onChange={(e) => handlePendidikanChange(index, 'tahunLulus', e.target.value)}
-                              placeholder="Contoh: 2018"
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <RiwayatPendidikanSection
+                    items={riwayatPendidikan}
+                    masterPendidikan={masterPendidikan}
+                    onChange={handlePendidikanChange}
+                    onTambah={tambahBarisPendidikan}
+                    onHapus={hapusBarisPendidikan}
+                  />
                 )}
 
-                {/* BAGIAN 4: DATA KELUARGA */}
                 {activeTab === 'keluarga' && (
-                  <div className="space-y-6">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-100 pb-4 gap-3">
-                      <div>
-                        <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Langkah 4 dari 5</span>
-                        <h3 className="text-lg font-bold text-gray-900 mt-0.5">Data Keluarga (Pasangan, Anak, Orang Tua)</h3>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={tambahBarisKeluarga}
-                        className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 px-3.5 py-2 rounded-xl text-xs font-bold transition"
-                      >
-                        + Tambah Anggota Keluarga
-                      </button>
-                    </div>
-
-                    {dataKeluarga.map((item, index) => (
-                      <div key={index} className="p-5 bg-gray-50 border border-gray-200 rounded-2xl space-y-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-lg">
-                            Anggota Keluarga #{index + 1}
-                          </span>
-                          {dataKeluarga.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => hapusBarisKeluarga(index)}
-                              className="text-red-600 hover:text-red-800 text-xs font-semibold"
-                            >
-                              Hapus Baris
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Hubungan Keluarga</label>
-                            <select
-                              value={item.hubungan}
-                              onChange={(e) => handleKeluargaChange(index, 'hubungan', e.target.value)}
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            >
-                              <option value="Suami/Istri">Suami / Istri</option>
-                              <option value="Anak Kandung">Anak Kandung</option>
-                              <option value="Ayah Kandung">Ayah Kandung</option>
-                              <option value="Ibu Kandung">Ibu Kandung</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Nama Lengkap</label>
-                            <input
-                              type="text"
-                              value={item.nama}
-                              onChange={(e) => handleKeluargaChange(index, 'nama', e.target.value)}
-                              placeholder="Nama lengkap anggota keluarga"
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Tempat, Tanggal Lahir</label>
-                            <input
-                              type="text"
-                              value={item.tempatTanggalLahir}
-                              onChange={(e) => handleKeluargaChange(index, 'tempatTanggalLahir', e.target.value)}
-                              placeholder="Contoh: Marisa, 12-05-1985"
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1">Pekerjaan</label>
-                            <input
-                              type="text"
-                              value={item.pekerjaan}
-                              onChange={(e) => handleKeluargaChange(index, 'pekerjaan', e.target.value)}
-                              placeholder="Contoh: PNS / Ibu Rumah Tangga / Pelajar"
-                              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <DataKeluargaSection
+                    items={dataKeluarga}
+                    onChange={handleKeluargaChange}
+                    onTambah={tambahBarisKeluarga}
+                    onHapus={hapusBarisKeluarga}
+                  />
                 )}
 
-                {/* BAGIAN 5: RIWAYAT LAINNYA */}
                 {activeTab === 'lainnya' && (
                   <div className="space-y-6">
                     <div className="border-b border-gray-100 pb-4">
@@ -822,7 +564,6 @@ export default function PegawaiEditClient({ initialData, initialError, pegawaiId
                   </div>
                 )}
 
-                {/* Footer Navigasi Antar Langkah & Tombol Simpan */}
                 <div className="mt-8 pt-6 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="flex items-center gap-2 w-full sm:w-auto">
                     {currentSectionIndex > 0 && (
@@ -869,7 +610,6 @@ export default function PegawaiEditClient({ initialData, initialError, pegawaiId
 
         </div>
 
-        {/* MODAL SUKSES KUSTOM */}
         {showSuccessModal && (
           <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 text-center border border-emerald-100 transform transition-all">
