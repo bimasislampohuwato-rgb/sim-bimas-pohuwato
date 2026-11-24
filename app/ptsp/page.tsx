@@ -2,13 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
-import Sidebar from '@/src/components/Sidebar';
-import HeaderBar from '@/src/components/HeaderBar';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
+import Sidebar from '@/components/Sidebar';
+import HeaderBar from '@/components/HeaderBar';
+import { supabase } from '@/lib/supabase/client';
 
 export default function AdminPtspPage() {
   const router = useRouter();

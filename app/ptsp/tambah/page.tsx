@@ -2,13 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
-import { sendEmailNotification } from '@/src/actions/sendEmailAction';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { sendEmailNotification } from '@/actions/sendEmailAction';
+import { supabase } from '@/lib/supabase/client';
 
 export default function FormPengajuanPtspPage() {
   const router = useRouter();

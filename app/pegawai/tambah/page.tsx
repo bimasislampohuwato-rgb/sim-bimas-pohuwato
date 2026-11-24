@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
-import Sidebar from '@/src/components/Sidebar';
-import { createPegawaiLengkap } from '@/src/actions/pegawai';
+import Sidebar from '@/components/Sidebar';
+import { createPegawaiLengkap } from '@/actions/pegawai';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';

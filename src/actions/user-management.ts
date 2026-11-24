@@ -1,30 +1,11 @@
 'use server';
 
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-
-function getSupabaseAdmin() {
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error(
-      'Konfigurasi server belum lengkap: SUPABASE_SERVICE_ROLE_KEY belum diatur di Environment Variables.'
-    );
-  }
-
-  return createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-}
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 // 1. Ambil daftar pegawai yang belum punya akun login di tabel profiles
 export async function getPegawaiTanpaAkun() {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
-    const { data: pegawaiList, error: pegError } = await supabaseAdmin.from('pegawai').select('*');
+    const { data: pegawaiList, error: pegError } = await supabaseAdmin.from('Nama').select('*');
     if (pegError) throw pegError;
 
     const { data: profilesList, error: profError } = await supabaseAdmin.from('profiles').select('nip, email');
@@ -53,7 +34,6 @@ export async function createAkunPegawai(params: {
   kuaWilayah?: string;
 }) {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
     const emailSimulasi = `${params.nip}@kemenagpohuwato.go.id`;
     const passwordDefault = 'Kemenag2026!';
     const jabatanNormalized = params.jabatanAdmin || null;
@@ -74,7 +54,7 @@ export async function createAkunPegawai(params: {
       email: emailSimulasi,
       nip: params.nip,
       nama_lengkap: params.namaLengkap,
-      role: 'pegawai',
+      role: 'nama',
       jabatan_admin: jabatanNormalized,
       kua_wilayah: kuaNormalized,
     });
@@ -90,7 +70,6 @@ export async function createAkunPegawai(params: {
 // 3. BUAT AKUN MASSAL OTOMATIS
 export async function createAkunMassalPegawai() {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
     const resTanpaAkun = await getPegawaiTanpaAkun();
     if (!resTanpaAkun.success || !resTanpaAkun.data || resTanpaAkun.data.length === 0) {
       return { success: false, message: 'Tidak ada pegawai yang belum memiliki akun.' };
@@ -121,7 +100,7 @@ export async function createAkunMassalPegawai() {
           email: emailSimulasi,
           nip: nip,
           nama_lengkap: nama,
-          role: 'pegawai',
+          role: 'nama',
           jabatan_admin: null,
           kua_wilayah: null,
         });
@@ -143,7 +122,6 @@ export async function updateRolePegawai(params: {
   kuaWilayah?: string;
 }) {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
     const jabatanNormalized = params.jabatanAdmin || null;
     const kuaNormalized = jabatanNormalized === 'admin_kua' ? params.kuaWilayah || null : null;
 
@@ -159,7 +137,7 @@ export async function updateRolePegawai(params: {
       .single();
 
     if (error) throw error;
-    return { success: true, message: 'Hak akses berhasil diperbarui.', data };
+    return { success: true, message: 'Hak akses Successfully diperbarui.', data };
   } catch (error: any) {
     return { success: false, message: error.message };
   }
@@ -168,12 +146,11 @@ export async function updateRolePegawai(params: {
 // 5. Reset Password Satuan
 export async function resetPasswordSingle(userId: string) {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
     const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
       password: 'Kemenag2026!',
     });
     if (error) throw error;
-    return { success: true, message: 'Kata sandi berhasil dikembalikan ke default: Kemenag2026!' };
+    return { success: true, message: 'Kata sandi Successfully dikembalikan ke default: Kemenag2026!' };
   } catch (error: any) {
     return { success: false, message: error.message };
   }
@@ -182,7 +159,6 @@ export async function resetPasswordSingle(userId: string) {
 // 6. Reset Password Massal
 export async function resetPasswordMassal() {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
     const { data: profiles, error: profError } = await supabaseAdmin.from('profiles').select('id, role');
     if (profError) throw profError;
 
@@ -204,14 +180,13 @@ export async function resetPasswordMassal() {
 // 7. Hapus Akun User
 export async function deleteAkunUser(userId: string) {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
     const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
     if (authError) throw authError;
 
     const { error: profError } = await supabaseAdmin.from('profiles').delete().eq('id', userId);
     if (profError) throw profError;
 
-    return { success: true, message: 'Akun login berhasil dihapus dari sistem.' };
+    return { success: true, message: 'Akun login Successfully dihapus dari sistem.' };
   } catch (error: any) {
     return { success: false, message: error.message };
   }

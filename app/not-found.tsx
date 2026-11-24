@@ -1,4 +1,4 @@
-﻿export default function NotFound() {
+export default function NotFound() {
   return (
     <div className="min-h-screen bg-emerald-50 flex items-center justify-center p-6">
       <div className="text-center space-y-4">
@@ -15,3 +15,4 @@
     </div>
   );
 }
+

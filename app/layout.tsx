@@ -1,4 +1,4 @@
-﻿import type { Metadata } from 'next';
+import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 
@@ -14,10 +14,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'SIM Bimas Islam — Kemenag Kab. Pohuwato',
+    default: 'SIM Bimas Islam - Kemenag Kab. Pohuwato',
     template: '%s | SIM Bimas Islam',
   },
-  description: 'Sistem Informasi Manajemen Bimas Islam — Kantor Kementerian Agama Kabupaten Pohuwato',
+  description: 'Sistem Informasi Manajemen Bimas Islam - Kantor Kementerian Agama Kabupaten Pohuwato',
   keywords: ['SIM Bimas Islam', 'Kemenag Pohuwato', 'Kepegawaian', 'PTSP', 'Kebimasislaman'],
 };
 

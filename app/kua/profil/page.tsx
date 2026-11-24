@@ -1,9 +1,9 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Sidebar from '@/src/components/Sidebar';
-import { getKuaProfile, updateKuaProfile } from '@/src/actions/kua-profile';
+import Sidebar from '@/components/Sidebar';
+import { getKuaProfile, updateKuaProfile } from '@/actions/kua-profile';
 
 export default function ProfileKuaPage() {
   const router = useRouter();
@@ -97,12 +97,12 @@ export default function ProfileKuaPage() {
         
         {toast && (
           <div className="fixed top-6 right-6 z-50 max-w-md w-full bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 flex items-start gap-3.5">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${toast.type === 'success' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>âœ“</div>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${toast.type === 'success' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>✓</div>
             <div className="flex-1">
               <h4 className="text-sm font-bold text-gray-900">{toast.title}</h4>
               <p className="text-xs text-gray-600 mt-0.5">{toast.message}</p>
             </div>
-            <button onClick={() => setToast(null)} className="text-gray-400 font-bold p-1">âœ•</button>
+            <button onClick={() => setToast(null)} className="text-gray-400 font-bold p-1">✕</button>
           </div>
         )}
 
@@ -117,7 +117,7 @@ export default function ProfileKuaPage() {
               onClick={() => setIsEditing(!isEditing)}
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs transition shadow-md shadow-emerald-600/20"
             >
-              {isEditing ? 'Batal Edit' : 'âœï¸ Edit Profil KUA'}
+              {isEditing ? 'Batal Edit' : '✏️ Edit Profil KUA'}
             </button>
           </div>
 
@@ -201,7 +201,7 @@ export default function ProfileKuaPage() {
           {/* TABEL RIWAYAT KEPALA KUA */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center text-xs font-semibold text-gray-600">
-              <span>ðŸ›ï¸ Riwayat Kepemimpinan (Daftar Kepala KUA Terdahulu)</span>
+              <span>🏛️ Riwayat Kepemimpinan (Daftar Kepala KUA Terdahulu)</span>
               <span>Total Periode Tercatat: <strong className="text-emerald-700">{riwayatKepala.length} Orang</strong></span>
             </div>
 
@@ -238,3 +238,4 @@ export default function ProfileKuaPage() {
     </div>
   );
 }
+

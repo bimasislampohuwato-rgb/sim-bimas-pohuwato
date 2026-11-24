@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase/client';
 
 export interface PejabatUtamaItem {
   id?: string;
@@ -812,10 +812,6 @@ function SertifikatKiblatModal({
     </div>
   );
 }
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
-
 export type JenisLembagaKiblat = 'MASJID' | 'MUSHALLA';
 
 export interface KiblatMasjidItem {

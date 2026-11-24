@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import * as XLSX from 'xlsx';
-import { createClient } from '@supabase/supabase-js';
-import Sidebar from '@/src/components/Sidebar';
-import HeaderBar from '@/src/components/HeaderBar';
+import Sidebar from '@/components/Sidebar';
+import HeaderBar from '@/components/HeaderBar';
+import { supabase } from '@/lib/supabase/client';
 import type { PejabatUtamaItem } from './ArahKiblatTab';
 import MasjidMushallaTab, {
   type MasjidMushallaItem,
@@ -12,10 +12,6 @@ import MasjidMushallaTab, {
 } from './MasjidMushallaTab';
 import SdmMasjidTab, { type SdmDataItem } from './SdmMasjidTab';
 import ArahKiblatTab, { type KiblatDataItem } from './ArahKiblatTab';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 export type MasjidSubMenuKey = 'masjid' | 'sdm_masjid' | 'arah_kiblat';
 
@@ -1051,3 +1047,4 @@ export default function KebimasislamanPage() {
     </div>
   );
 }
+

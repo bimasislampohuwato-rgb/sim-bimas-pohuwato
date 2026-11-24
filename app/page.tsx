@@ -1,4 +1,4 @@
-﻿import Link from 'next/link';
+import Link from 'next/link';
 import { Users, FileText, BookOpen, Settings } from 'lucide-react';
 
 export default function Home() {
@@ -58,7 +58,7 @@ export default function Home() {
           </Link>
         </div>
 
-        <p className="text-xs text-gray-400">© 2026 Kemenag Kab. Pohuwato</p>
+        <p className="text-xs text-gray-400">(c) 2026 Kemenag Kab. Pohuwato</p>
       </div>
     </div>
   );
