@@ -1,21 +1,18 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
-import { supabaseAdmin } from '@/lib/supabase/admin';
+import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
 export interface KuaProfileData {
   id: string;
-  namaKua: string | null;
-  alamat: string | null;
+  namaKua: string;
+  alamat: string;
   telepon: string | null;
   email: string | null;
-  website: string | null;
-  kepalaKua: string | null;
   kepalaKuaNip: string | null;
-  kecamatanId: string | null;
-  createdAt?: string;
-  updatedAt?: string;
+  kecamatanId: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
   kecamatan?: {
     namaKecamatan: string | null;
     kodeKecamatan: string | null;
@@ -33,17 +30,15 @@ export interface KuaProfilPageData {
 }
 
 export async function getKuaProfilPageData(): Promise<{ data: KuaProfilPageData | null; error: string | null }> {
-  const supabase = await createClient();
-
   try {
-    const { data: kuaProfile, error } = await supabase
-      .from('KuaProfile')
-      .select('*, kecamatan:MasterKecamatan(namaKecamatan, kodeKecamatan)')
-      .maybeSingle();
+    const kuaProfile = await prisma.kuaProfile.findFirst({
+      include: {
+        MasterKecamatan: {
+          select: { namaKecamatan: true, kodeKecamatan: true },
+        },
+      },
+    });
 
-    if (error) throw error;
-
-    // Static riwayat kepala KUA (could be moved to DB later)
     const riwayatKepala = [
       { id: 1, nama: 'H. Rais Abaidata, S.Ag, M.H', periode: '2023 - Sekarang', nip: '197501012000031002' },
       { id: 2, nama: 'Drs. H. Mohamad Randa', periode: '2019 - 2023', nip: '197005121998031001' },
@@ -52,7 +47,25 @@ export async function getKuaProfilPageData(): Promise<{ data: KuaProfilPageData 
 
     return {
       data: {
-        kuaProfile: kuaProfile as KuaProfileData | null,
+        kuaProfile: kuaProfile
+          ? {
+              id: kuaProfile.id,
+              namaKua: kuaProfile.namaKua,
+              alamat: kuaProfile.alamat,
+              telepon: kuaProfile.telepon,
+              email: kuaProfile.email,
+              kepalaKuaNip: kuaProfile.kepalaKuaNip,
+              kecamatanId: kuaProfile.kecamatanId,
+              createdAt: kuaProfile.createdAt,
+              updatedAt: kuaProfile.updatedAt,
+              kecamatan: kuaProfile.MasterKecamatan
+                ? {
+                    namaKecamatan: kuaProfile.MasterKecamatan.namaKecamatan,
+                    kodeKecamatan: kuaProfile.MasterKecamatan.kodeKecamatan,
+                  }
+                : null,
+            }
+          : null,
         riwayatKepala,
       },
       error: null,
@@ -62,38 +75,39 @@ export async function getKuaProfilPageData(): Promise<{ data: KuaProfilPageData 
   }
 }
 
-export async function updateKuaProfil(id: string, payload: {
-  namaKua?: string;
-  alamat?: string;
-  telepon?: string | null;
-  email?: string | null;
-  website?: string | null;
-  kepalaKua?: string | null;
-  kepalaKuaNip?: string | null;
-}): Promise<{ success: boolean; error: string | null }> {
+export async function updateKuaProfil(
+  id: string,
+  payload: {
+    namaKua?: string;
+    alamat?: string;
+    telepon?: string | null;
+    email?: string | null;
+    kepalaKuaNip?: string | null;
+  }
+): Promise<{ success: boolean; error: string | null }> {
+  if (!id) {
+    return { success: false, error: 'ID profil tidak valid.' };
+  }
+
   try {
-    if (!id) {
-      return { success: false, error: 'ID profil tidak valid.' };
-    }
-
-    const { data, error } = await supabaseAdmin
-      .from('KuaProfile')
-      .update({ ...payload, updatedAt: new Date().toISOString() })
-      .eq('id', id)
-      .select('id');
-
-    if (error) throw new Error(error.message);
-
-    if (!data || data.length === 0) {
-      return {
-        success: false,
-        error: 'Tidak ada data yang diperbarui. Periksa kembali ID profil atau izin akses.',
-      };
-    }
+    await prisma.kuaProfile.update({
+      where: { id },
+      data: {
+        ...(payload.namaKua !== undefined ? { namaKua: payload.namaKua } : {}),
+        ...(payload.alamat !== undefined ? { alamat: payload.alamat } : {}),
+        ...(payload.telepon !== undefined ? { telepon: payload.telepon } : {}),
+        ...(payload.email !== undefined ? { email: payload.email } : {}),
+        ...(payload.kepalaKuaNip !== undefined ? { kepalaKuaNip: payload.kepalaKuaNip } : {}),
+        updatedAt: new Date(),
+      },
+    });
 
     revalidatePath('/kua/profil');
     return { success: true, error: null };
   } catch (err: any) {
+    if (err?.code === 'P2025') {
+      return { success: false, error: 'Profil KUA tidak ditemukan di database.' };
+    }
     return { success: false, error: err?.message || 'Terjadi kesalahan.' };
   }
 }

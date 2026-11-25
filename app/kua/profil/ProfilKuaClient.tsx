@@ -23,12 +23,10 @@ export default function ProfilKuaClient({ initialData, initialError }: ProfilKua
 
   const [kuaData, setKuaData] = useState({
     nama_kua: profile?.namaKua || '',
-    kepala_kua: profile?.kepalaKua || '',
     nip_kepala: profile?.kepalaKuaNip || '',
     alamat: profile?.alamat || '',
     kontak: profile?.telepon || '',
     email: profile?.email || '',
-    website: profile?.website || '',
     foto_kantor: '',
   });
 
@@ -57,8 +55,6 @@ export default function ProfilKuaClient({ initialData, initialError }: ProfilKua
           alamat: kuaData.alamat,
           telepon: kuaData.kontak || null,
           email: kuaData.email || null,
-          website: kuaData.website || null,
-          kepalaKua: kuaData.kepala_kua,
           kepalaKuaNip: kuaData.nip_kepala || null,
         }),
       });
@@ -72,8 +68,6 @@ export default function ProfilKuaClient({ initialData, initialError }: ProfilKua
           alamat: kuaData.alamat,
           telepon: kuaData.kontak || null,
           email: kuaData.email || null,
-          website: kuaData.website || null,
-          kepalaKua: kuaData.kepala_kua || null,
           kepalaKuaNip: kuaData.nip_kepala || null,
         } : null);
         triggerToast('success', 'Profil Diperbarui', 'Profil KUA berhasil diperbarui.');
@@ -149,8 +143,8 @@ export default function ProfilKuaClient({ initialData, initialError }: ProfilKua
                 <p className="text-xs text-emerald-200 mt-1">Kabupaten Pohuwato, Provinsi Gorontalo</p>
               </div>
               <div className="text-right bg-emerald-950/40 p-3.5 rounded-xl border border-emerald-700/50">
-                <span className="text-[10px] text-emerald-300 block uppercase font-bold">Kepala KUA Saat Ini</span>
-                <span className="text-sm font-extrabold text-white">{kuaData.kepala_kua || 'Belum diisi'}</span>
+                <span className="text-[10px] text-emerald-300 block uppercase font-bold">NIP Kepala KUA</span>
+                <span className="text-sm font-extrabold text-white">{kuaData.nip_kepala || 'Belum diisi'}</span>
               </div>
             </div>
 
@@ -160,10 +154,6 @@ export default function ProfilKuaClient({ initialData, initialError }: ProfilKua
                   <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Nama KUA</label>
                     <input type="text" value={kuaData.nama_kua} onChange={(e) => setKuaData({...kuaData, nama_kua: e.target.value})} className="w-full border rounded-xl px-3 py-2 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Nama Kepala KUA</label>
-                    <input type="text" value={kuaData.kepala_kua} onChange={(e) => setKuaData({...kuaData, kepala_kua: e.target.value})} className="w-full border rounded-xl px-3 py-2 text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">NIP Kepala KUA</label>
@@ -176,10 +166,6 @@ export default function ProfilKuaClient({ initialData, initialError }: ProfilKua
                   <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Email Resmi</label>
                     <input type="email" value={kuaData.email} onChange={(e) => setKuaData({...kuaData, email: e.target.value})} className="w-full border rounded-xl px-3 py-2 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Website</label>
-                    <input type="text" value={kuaData.website} onChange={(e) => setKuaData({...kuaData, website: e.target.value})} className="w-full border rounded-xl px-3 py-2 text-sm" />
                   </div>
                 </div>
                 <div>
@@ -204,10 +190,6 @@ export default function ProfilKuaClient({ initialData, initialError }: ProfilKua
                 <div>
                   <span className="text-xs font-bold text-gray-400 uppercase">Email Resmi</span>
                   <p className="text-gray-800 font-medium mt-1">{kuaData.email}</p>
-                </div>
-                <div>
-                  <span className="text-xs font-bold text-gray-400 uppercase">Website</span>
-                  <p className="text-emerald-700 font-medium mt-1 underline">{kuaData.website}</p>
                 </div>
                 <div>
                   <span className="text-xs font-bold text-gray-400 uppercase">NIP Kepala KUA</span>

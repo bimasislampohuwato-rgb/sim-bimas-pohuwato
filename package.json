@@ -8,14 +8,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma skills sync || exit 0",
-    "contract:emit": "prisma contract emit",
+    "prisma:generate": "prisma generate",
+    "db:pull": "prisma db pull",
+    "db:push": "prisma db push",
     "test": "vitest",
     "test:run": "vitest run"
   },
   "dependencies": {
-    "@prisma/client": "^7.10.1",
-    "@prisma/orm-postgres": "^8.0.0-rc.23",
+    "@prisma/client": "^6.19.3",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.0",
     "clsx": "^2.1.1",
@@ -29,7 +29,6 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "@prisma/cli-engine": "^0.9.0",
     "@tailwindcss/turbopack": "4.3.3",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^8.0.0",
@@ -42,7 +41,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
     "jsdom": "^31.0.1",
-    "prisma": "^8.0.0-rc.33",
+    "prisma": "^6.19.3",
     "tailwindcss": "4.3.3",
     "tsx": "^4.23.15",
     "typescript": "^5",
