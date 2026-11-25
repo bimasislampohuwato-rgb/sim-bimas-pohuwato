@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
+import { saveProfilKantorRecord } from '@/app/admin/master/_actions/profil-kantor';
 import type {
   PegawaiRefItem,
   ProfilKantorData,
@@ -551,51 +552,17 @@ export function useMasterData({
       };
 
       try {
-        let savedRecord: ProfilKantorData = { ...payload, id: profilKantor.id };
-        let savedInTable = false;
-
-        if (profilKantor.id) {
-          const { data: updatedRow, error } = await supabase
-            .from('profil_kantor')
-            .update(payload)
-            .eq('id', profilKantor.id)
-            .select()
-            .single();
-          if (!error) {
-            savedInTable = true;
-            if (updatedRow) savedRecord = { ...payload, ...updatedRow };
-          }
-        } else {
-          const newId =
-            typeof crypto !== 'undefined' && crypto.randomUUID
-              ? crypto.randomUUID()
-              : 'pk_' + Date.now();
-          const { data: insertedRow, error } = await supabase
-            .from('profil_kantor')
-            .insert([{ id: newId, ...payload, created_at: nowIso }])
-            .select()
-            .single();
-          if (!error) {
-            savedInTable = true;
-            savedRecord = { ...payload, id: insertedRow?.id || newId };
-          }
-        }
-
         const settingsKey =
           payload.unit_key === KANTOR_KEMENAG_KEY
             ? 'profil_kantor'
             : `profil_kantor_${payload.unit_key}`;
-        const { error: settingsError } = await supabase.from('app_settings').upsert(
-          {
-            key_name: settingsKey,
-            value_text: JSON.stringify(savedRecord),
-          },
-          { onConflict: 'key_name' }
-        );
 
-        if (!savedInTable && settingsError) {
-          throw new Error(settingsError.message);
+        const result = await saveProfilKantorRecord(payload, profilKantor.id, settingsKey);
+        if (!result.success || !result.data) {
+          throw new Error(result.error || 'Gagal menyimpan profil kantor.');
         }
+
+        const savedRecord: ProfilKantorData = { ...payload, ...result.data };
 
         setProfilKantor(savedRecord);
         setProfilUnits((prev) => {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import type { KuaProfileData, KuaProfilPageData } from '@/app/kua/profil/_actions/kua-profil';
 
@@ -10,6 +11,7 @@ interface ProfilKuaClientProps {
 }
 
 export default function ProfilKuaClient({ initialData, initialError }: ProfilKuaClientProps) {
+  const router = useRouter();
   const [profile, setProfile] = useState<KuaProfileData | null>(initialData?.kuaProfile || null);
   const [riwayatKepala, setRiwayatKepala] = useState<Array<{ id: number; nama: string; periode: string; nip: string }>>(
     initialData?.riwayatKepala || [
@@ -21,7 +23,7 @@ export default function ProfilKuaClient({ initialData, initialError }: ProfilKua
 
   const [kuaData, setKuaData] = useState({
     nama_kua: profile?.namaKua || '',
-    kepala_kua: '',
+    kepala_kua: profile?.kepalaKua || '',
     nip_kepala: profile?.kepalaKuaNip || '',
     alamat: profile?.alamat || '',
     kontak: profile?.telepon || '',
@@ -64,8 +66,18 @@ export default function ProfilKuaClient({ initialData, initialError }: ProfilKua
 
       if (result.success) {
         setIsEditing(false);
+        setProfile((prev: KuaProfileData | null) => prev ? {
+          ...prev,
+          namaKua: kuaData.nama_kua,
+          alamat: kuaData.alamat,
+          telepon: kuaData.kontak || null,
+          email: kuaData.email || null,
+          website: kuaData.website || null,
+          kepalaKua: kuaData.kepala_kua || null,
+          kepalaKuaNip: kuaData.nip_kepala || null,
+        } : null);
         triggerToast('success', 'Profil Diperbarui', 'Profil KUA berhasil diperbarui.');
-        setProfile((prev: KuaProfileData | null) => prev ? { ...prev, ...kuaData } : null);
+        router.refresh();
       } else {
         triggerToast('error', 'Gagal', result.error || 'Terjadi kesalahan.');
       }

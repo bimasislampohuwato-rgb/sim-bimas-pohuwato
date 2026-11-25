@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 
 export interface KuaProfileData {
@@ -70,15 +71,25 @@ export async function updateKuaProfil(id: string, payload: {
   kepalaKua?: string | null;
   kepalaKuaNip?: string | null;
 }): Promise<{ success: boolean; error: string | null }> {
-  const supabase = await createClient();
-
   try {
-    const { error } = await supabase
+    if (!id) {
+      return { success: false, error: 'ID profil tidak valid.' };
+    }
+
+    const { data, error } = await supabaseAdmin
       .from('KuaProfile')
       .update({ ...payload, updatedAt: new Date().toISOString() })
-      .eq('id', id);
+      .eq('id', id)
+      .select('id');
 
     if (error) throw new Error(error.message);
+
+    if (!data || data.length === 0) {
+      return {
+        success: false,
+        error: 'Tidak ada data yang diperbarui. Periksa kembali ID profil atau izin akses.',
+      };
+    }
 
     revalidatePath('/kua/profil');
     return { success: true, error: null };
