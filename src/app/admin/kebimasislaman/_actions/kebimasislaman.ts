@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
 export interface MasjidMushallaItem {
@@ -306,20 +307,18 @@ export async function saveProfilKua(formData: {
   kop_baris_3: string;
   kop_baris_4: string;
 }): Promise<{ success: boolean; error: string | null }> {
-  const supabase = await createClient();
-
   if (!formData.namaKua.trim()) {
     return { success: false, error: 'Nama KUA wajib diisi.' };
   }
 
   try {
-    const nowIso = new Date().toISOString();
+    const now = new Date();
     const unitKey = `kua_${formData.namaKua
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '_')
       .replace(/^_|_$/g, '')}`;
 
-    const payload = {
+    const data = {
       unit_key: unitKey,
       jenis_unit: 'kua',
       nama_kantor: formData.namaKua.trim(),
@@ -333,25 +332,20 @@ export async function saveProfilKua(formData: {
       kop_baris_2: formData.kop_baris_2.trim(),
       kop_baris_3: formData.kop_baris_3.trim(),
       kop_baris_4: formData.kop_baris_4.trim(),
-      updated_at: nowIso,
     };
 
-    if (formData.id) {
-      const { error } = await supabase
-        .from('profil_kantor')
-        .update(payload)
-        .eq('id', formData.id);
-      if (error) throw new Error(error.message);
-    } else {
-      const newId =
-        typeof crypto !== 'undefined' && crypto.randomUUID
+    const id =
+      formData.id && formData.id.trim()
+        ? formData.id
+        : typeof crypto !== 'undefined' && crypto.randomUUID
           ? crypto.randomUUID()
-          : 'pk_kua_' + Date.now();
-      const { error } = await supabase
-        .from('profil_kantor')
-        .insert([{ id: newId, ...payload, created_at: nowIso }]);
-      if (error) throw new Error(error.message);
-    }
+          : `pk_kua_${Date.now()}`;
+
+    await prisma.profil_kantor.upsert({
+      where: { id },
+      create: { id, ...data, created_at: now },
+      update: { ...data, updated_at: now },
+    });
 
     revalidatePath('/admin/kebimasislaman');
     return { success: true, error: null };
